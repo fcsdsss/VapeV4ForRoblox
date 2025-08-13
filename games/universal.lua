@@ -1,8 +1,7 @@
 local loadstring = function(...)
 	local res, err = loadstring(...)
 	if err and vape then
-		-- 创建通知：'Vape', '加载失败 : '..错误信息, 30, '警报'
-		vape:CreateNotification('Vape', '加载失败 : '..err, 30, 'alert')
+		vape:CreateNotification('Vape', 'Failed to load : '..err, 30, 'alert')
 	end
 	return res
 end
@@ -21,8 +20,7 @@ local function downloadFile(path, func)
 			error(res)
 		end
 		if path:find('.lua') then
-			-- '--此水印用于删除缓存文件，移除它可使文件在vape更新后保留。\n'
-			res = '--此水印用于在文件被缓存时删除文件，移除它可使文件在vape更新后保留。\n'..res
+			res = '--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.\n'..res
 		end
 		writefile(path, res)
 	end
@@ -36,7 +34,6 @@ local cloneref = cloneref or function(obj)
 	return obj
 end
 
--- 服务克隆
 local playersService = cloneref(game:GetService('Players'))
 local replicatedStorage = cloneref(game:GetService('ReplicatedStorage'))
 local runService = cloneref(game:GetService('RunService'))
@@ -59,7 +56,6 @@ local gameCamera = workspace.CurrentCamera or workspace:FindFirstChildWhichIsA('
 local lplr = playersService.LocalPlayer
 local assetfunction = getcustomasset
 
--- Vape 库和变量
 local vape = shared.vape
 local tween = vape.Libraries.tween
 local targetinfo = vape.Libraries.targetinfo
@@ -70,10 +66,9 @@ local TargetStrafeVector, SpiderShift, WaypointFolder
 local Spider = {Enabled = false}
 local Phase = {Enabled = false}
 
--- 添加模糊效果
 local function addBlur(parent)
 	local blur = Instance.new('ImageLabel')
-	blur.Name = '模糊'
+	blur.Name = 'Blur'
 	blur.Size = UDim2.new(1, 89, 1, 52)
 	blur.Position = UDim2.fromOffset(-48, -31)
 	blur.BackgroundTransparency = 1
@@ -84,7 +79,6 @@ local function addBlur(parent)
 	return blur
 end
 
--- 计算移动向量
 local function calculateMoveVector(vec)
 	local c, s
 	local _, _, _, R00, R01, R02, _, _, R12, _, _, R22 = gameCamera.CFrame:GetComponents()
@@ -99,24 +93,21 @@ local function calculateMoveVector(vec)
 	return vec.Unit == vec.Unit and vec.Unit or Vector3.zero
 end
 
--- 检查是否为好友
 local function isFriend(plr, recolor)
-	if vape.Categories.Friends.Options['使用好友'].Enabled then
+	if vape.Categories.Friends.Options['Use friends'].Enabled then
 		local friend = table.find(vape.Categories.Friends.ListEnabled, plr.Name) and true
 		if recolor then
-			friend = friend and vape.Categories.Friends.Options['重绘视觉效果'].Enabled
+			friend = friend and vape.Categories.Friends.Options['Recolor visuals'].Enabled
 		end
 		return friend
 	end
 	return nil
 end
 
--- 检查是否为目标
 local function isTarget(plr)
 	return table.find(vape.Categories.Targets.ListEnabled, plr.Name) and true
 end
 
--- 检查是否可以点击
 local function canClick()
 	local mousepos = (inputService:GetMouseLocation() - guiService:GetGuiInset())
 	for _, v in lplr.PlayerGui:GetGuiObjectsAtPosition(mousepos.X, mousepos.Y) do
@@ -134,30 +125,25 @@ local function canClick()
 	return (not vape.gui.ScaledGui.ClickGui.Visible) and (not inputService:GetFocusedTextBox())
 end
 
--- 获取表格大小
 local function getTableSize(tab)
 	local ind = 0
 	for _ in tab do ind += 1 end
 	return ind
 end
 
--- 获取工具
 local function getTool()
 	return lplr.Character and lplr.Character:FindFirstChildWhichIsA('Tool', true) or nil
 end
 
--- 发送通知
 local function notif(...)
 	return vape:CreateNotification(...)
 end
 
--- 移除富文本标签
 local function removeTags(str)
 	str = str:gsub('<br%s*/>', '\n')
 	return (str:gsub('<[^<>]->', ''))
 end
 
--- 服务器跳跃逻辑
 local visited, attempted, tpSwitch = {}, {}, false
 local cacheExpire, cache = tick()
 local function serverHop(pointer, filter)
@@ -166,7 +152,7 @@ local function serverHop(pointer, filter)
 		table.insert(visited, game.JobId)
 	end
 	if not pointer then
-		notif('Vape', '正在搜索可用服务器。', 2)
+		notif('Vape', 'Searching for an available server.', 2)
 	end
 
 	local suc, httpdata = pcall(function()
@@ -179,7 +165,7 @@ local function serverHop(pointer, filter)
 				cacheExpire, cache = tick() + 60, httpdata
 				table.insert(attempted, v.id)
 
-				notif('Vape', '已找到！正在传送。', 5)
+				notif('Vape', 'Found! Teleporting.', 5)
 				teleportService:TeleportToPlaceInstance(game.PlaceId, v.id)
 				return
 			end
@@ -188,10 +174,10 @@ local function serverHop(pointer, filter)
 		if data.nextPageCursor then
 			serverHop(data.nextPageCursor, filter)
 		else
-			notif('Vape', '未能找到可用服务器。', 5, 'warning')
+			notif('Vape', 'Failed to find an available server.', 5, 'warning')
 		end
 	else
-		notif('Vape', '获取服务器失败。 ('..(data and data.errors[1].message or '无数据')..')', 5, 'warning')
+		notif('Vape', 'Failed to grab servers. ('..(data and data.errors[1].message or 'no data')..')', 5, 'warning')
 	end
 end
 
@@ -202,7 +188,6 @@ vape:Clean(lplr.OnTeleport:Connect(function()
 	end
 end))
 
--- 物理属性和移动
 local frictionTable, oldfrict, entitylib = {}, {}
 local function updateVelocity()
 	if getTableSize(frictionTable) > 0 then
@@ -234,12 +219,9 @@ local function motorMove(target, cf)
 	task.delay(0, part.Destroy, part)
 end
 
--- 加载库
 local hash = loadstring(downloadFile('newvape/libraries/hash.lua'), 'hash')()
 local prediction = loadstring(downloadFile('newvape/libraries/prediction.lua'), 'prediction')()
 entitylib = loadstring(downloadFile('newvape/libraries/entity.lua'), 'entitylibrary')()
-
--- 白名单系统
 local whitelist = {
 	alreadychecked = {},
 	customtags = {},
@@ -258,8 +240,6 @@ vape.Libraries.entity = entitylib
 vape.Libraries.whitelist = whitelist
 vape.Libraries.prediction = prediction
 vape.Libraries.hash = hash
-
--- 光环动画
 vape.Libraries.auraanims = {
 	Normal = {
 		{CFrame = CFrame.new(-0.17, -0.14, -0.12) * CFrame.Angles(math.rad(-53), math.rad(50), math.rad(-64)), Time = 0.1},
@@ -293,9 +273,8 @@ vape.Libraries.auraanims = {
 	}
 }
 
--- 速度方法
 local SpeedMethods
-local SpeedMethodList = {'速度'} -- 'Velocity'
+local SpeedMethodList = {'Velocity'}
 SpeedMethods = {
 	Velocity = function(options, moveDirection)
 		local root = entitylib.character.RootPart
@@ -336,7 +315,7 @@ SpeedMethods = {
 		local dt = math.max(options.Value.Value - entitylib.character.Humanoid.WalkSpeed, 0)
 		dt = dt * (1 - math.min((tick() % (options.PulseLength.Value + options.PulseDelay.Value)) / options.PulseLength.Value, 1))
 		root.AssemblyLinearVelocity = (moveDirection * (entitylib.character.Humanoid.WalkSpeed + dt)) + Vector3.new(0, root.AssemblyLinearVelocity.Y, 0)
-	end,
+	end
 }
 for name in SpeedMethods do
 	if not table.find(SpeedMethodList, name) then
@@ -369,7 +348,7 @@ run(function()
 		if ent.NPC then return true end
 		if isFriend(ent.Player) then return false end
 		if not select(2, whitelist:get(ent.Player)) then return false end
-		if vape.Categories.Main.Options['服务器队伍'].Enabled then
+		if vape.Categories.Main.Options['Teams by server'].Enabled then
 			if not lplr.Team then return true end
 			if not ent.Player.Team then return true end
 			if ent.Player.Team ~= lplr.Team then return true end
@@ -380,9 +359,9 @@ run(function()
 
 	entitylib.getEntityColor = function(ent)
 		ent = ent.Player
-		if not (ent and vape.Categories.Main.Options['使用队伍颜色'].Enabled) then return end
+		if not (ent and vape.Categories.Main.Options['Use team color'].Enabled) then return end
 		if isFriend(ent, true) then
-			return Color3.fromHSV(vape.Categories.Friends.Options['好友颜色'].Hue, vape.Categories.Friends.Options['好友颜色'].Sat, vape.Categories.Friends.Options['好友颜色'].Value)
+			return Color3.fromHSV(vape.Categories.Friends.Options['Friends color'].Hue, vape.Categories.Friends.Options['Friends color'].Sat, vape.Categories.Friends.Options['Friends color'].Value)
 		end
 		return tostring(ent.TeamColor) ~= 'White' and ent.TeamColor.Color or nil
 	end
@@ -442,7 +421,7 @@ run(function()
 			if self.localprio == 0 then
 				olduninject = vape.Uninject
 				vape.Uninject = function()
-					notif('Vape', '别想逃出私人成员的手掌心 :)', 10)
+					notif('Vape', 'No escaping the private members :)', 10)
 				end
 				if joined then
 					task.wait(10)
@@ -466,9 +445,9 @@ run(function()
 
 		if self.localprio > 0 and not self.said[plr.Name] and msg == 'helloimusinginhaler' and plr ~= lplr then
 			self.said[plr.Name] = true
-			notif('Vape', plr.Name..' 正在使用vape!', 60)
+			notif('Vape', plr.Name..' is using vape!', 60)
 			self.customtags[plr.Name] = {{
-				text = 'VAPE 用户',
+				text = 'VAPE USER',
 				color = Color3.new(1, 1, 0)
 			}}
 			local newent = entitylib.getEntity(plr)
@@ -547,7 +526,7 @@ run(function()
 							self:newchat(obj, plr)
 						end
 
-						if obj.ContentText:sub(1, 35) == '您现在正在与...私聊' then -- 'You are now privately chatting with'
+						if obj.ContentText:sub(1, 35) == 'You are now privately chatting with' then
 							obj.Visible = false
 						end
 					end
@@ -638,7 +617,7 @@ run(function()
 
 					if table.find(targets, tostring(lplr.UserId)) then
 						local hint = Instance.new('Hint')
-						hint.Text = 'VAPE 公告: '..whitelist.data.Announcement.text
+						hint.Text = 'VAPE ANNOUNCEMENT: '..whitelist.data.Announcement.text
 						hint.Parent = workspace
 						game:GetService('Debris'):AddItem(hint, 20)
 					end
@@ -704,11 +683,11 @@ run(function()
 						style = {},
 						screenSize = vape.gui.AbsoluteSize or Vector2.new(1920, 1080),
 						moderationDetails = {
-							punishmentTypeDescription = '删除',
+							punishmentTypeDescription = 'Delete',
 							beginDate = DateTime.fromUnixTimestampMillis(DateTime.now().UnixTimestampMillis - ((60 * math.random(1, 6)) * 1000)):ToIsoDate(),
 							reactivateAccountActivated = true,
-							badUtterances = {{abuseType = 'ABUSE_TYPE_CHEAT_AND_EXPLOITS', utteranceText = '检测到外挂 - 地图ID : '..game.PlaceId}},
-							messageToUser = 'Roblox不允许使用第三方软件修改客户端。'
+							badUtterances = {{abuseType = 'ABUSE_TYPE_CHEAT_AND_EXPLOITS', utteranceText = 'ExploitDetected - Place ID : '..game.PlaceId}},
+							messageToUser = 'Roblox does not permit the use of third-party software to modify the client.'
 						},
 						termsActivated = function() end,
 						communityGuidelinesActivated = function() end,
@@ -779,9 +758,9 @@ run(function()
 		reveal = function()
 			task.delay(0.1, function()
 				if textChatService.ChatVersion == Enum.ChatVersion.TextChatService then
-					textChatService.ChatInputBarConfiguration.TargetTextChannel:SendAsync('我正在使用inhaler客户端')
+					textChatService.ChatInputBarConfiguration.TargetTextChannel:SendAsync('I am using the inhaler client')
 				else
-					replicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer('我正在使用inhaler客户端', 'All')
+					replicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer('I am using the inhaler client', 'All')
 				end
 			end)
 		end,
@@ -792,7 +771,7 @@ run(function()
 			if #args < 1 then return end
 			if args[1]:lower() == 'all' then
 				for i, v in vape.Modules do
-					if i ~= '紧急关闭' and i ~= '服务器跳跃' and i ~= '重新加入' then -- 'Panic', 'ServerHop', 'Rejoin'
+					if i ~= 'Panic' and i ~= 'ServerHop' and i ~= 'Rejoin' then
 						v:Toggle()
 					end
 				end
@@ -866,7 +845,7 @@ run(function()
 	end
 	
 	AimAssist = vape.Categories.Combat:CreateModule({
-		Name = '自瞄辅助',
+		Name = '瞄准辅助',
 		Function = function(callback)
 			if CircleObject then
 				CircleObject.Visible = callback
@@ -926,15 +905,15 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '平滑地瞄准最近的有效目标'
+		Tooltip = 'Smoothly aims to closest valid target'
 	})
 	Targets = AimAssist:CreateTargets({Players = true})
 	Part = AimAssist:CreateDropdown({
-		Name = '部位',
-		List = {'主干部分', '头部'} -- {'RootPart', 'Head'}
+		Name = 'Part',
+		List = {'RootPart', 'Head'}
 	})
 	FOV = AimAssist:CreateSlider({
-		Name = '视野',
+		Name = 'FOV',
 		Min = 0,
 		Max = 1000,
 		Default = 100,
@@ -974,7 +953,7 @@ run(function()
 		end
 	})
 	CircleColor = AimAssist:CreateColorSlider({
-		Name = '范围圈颜色',
+		Name = '圈颜色',
 		Function = function(hue, sat, val)
 			if CircleObject then
 				CircleObject.Color = Color3.fromHSV(hue, sat, val)
@@ -998,7 +977,7 @@ run(function()
 		Visible = false
 	})
 	CircleFilled = AimAssist:CreateToggle({
-		Name = '填充范围圈',
+		Name = '填充圈',
 		Function = function(callback)
 			if CircleObject then
 				CircleObject.Filled = callback
@@ -1008,7 +987,7 @@ run(function()
 		Visible = false
 	})
 	RightClick = AimAssist:CreateToggle({
-		Name = '需要右键',
+		Name = '右键开启',
 		Function = function()
 			if AimAssist.Enabled then
 				AimAssist:Toggle()
@@ -1027,7 +1006,7 @@ run(function()
 	local CPS
 	
 	AutoClicker = vape.Categories.Combat:CreateModule({
-		Name = '自动连点器',
+		Name = '自动点击',
 		Function = function(callback)
 			if callback then
 				repeat
@@ -1048,12 +1027,12 @@ run(function()
 				until not AutoClicker.Enabled
 			end
 		end,
-		Tooltip = '为你自动点击'
+		Tooltip = '自动帮你点击'
 	})
 	Mode = AutoClicker:CreateDropdown({
-		Name = '模式',
-		List = {'工具', '左键', '右键'}, -- {'Tool', 'Click', 'RightClick'}
-		Tooltip = '工具 - 自动使用Roblox工具（如剑）\n左键 - 左键点击\n右键 - 右键点击'
+		Name = 'Mode',
+		List = {'Tool', 'Click', 'RightClick'},
+		Tooltip = 'Tool - Automatically uses roblox tools (eg. swords)\nClick - Left click\nRightClick - Right click'
 	})
 	CPS = AutoClicker:CreateTwoSlider({
 		Name = 'CPS',
@@ -1075,7 +1054,7 @@ run(function()
 	local modified = {}
 	
 	Reach = vape.Categories.Combat:CreateModule({
-		Name = '攻击距离',
+		Name = '距离',
 		Function = function(callback)
 			if callback then
 				repeat
@@ -1123,16 +1102,16 @@ run(function()
 				table.clear(modified)
 			end
 		end,
-		Tooltip = '扩展工具攻击距离'
+		Tooltip = '扩展工具攻击范围'
 	})
 	Targets = Reach:CreateTargets({Players = true})
 	Mode = Reach:CreateDropdown({
 		Name = '模式',
-		List = {'接触兴趣', '调整大小'}, -- {'TouchInterest', 'Resize'}
+		List = {'TouchInterest', 'Resize'},
 		Function = function(val)
 			Chance.Object.Visible = val == 'TouchInterest'
 		end,
-		Tooltip = '接触兴趣 -向服务器报告虚假的碰撞事件\n调整大小 - 物理上修改工具的大小'
+		Tooltip = 'TouchInterest - Reports fake collision events to the server\nResize - Physically modifies the tools size'
 	})
 	Value = Reach:CreateSlider({
 		Name = '范围',
@@ -1140,7 +1119,7 @@ run(function()
 		Max = 2,
 		Decimal = 10,
 		Suffix = function(val)
-			return '单位' -- 'stud' or 'studs'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 	Chance = Reach:CreateSlider({
@@ -1252,7 +1231,7 @@ run(function()
 	Hooks.ViewportPointToRay = Hooks.ScreenPointToRay
 
 	SilentAim = vape.Categories.Combat:CreateModule({
-		Name = '静默自瞄',
+		Name = '静默瞄准',
 		Function = function(callback)
 			if CircleObject then
 				CircleObject.Visible = callback and Mode.Value == 'Mouse'
@@ -1351,18 +1330,18 @@ run(function()
 		ExtraText = function()
 			return Method.Value:gsub('FindPartOnRay', '')
 		end,
-		Tooltip = '静默地将你的准星调整向敌人'
+		Tooltip = '默默地调整你的目标，瞄准敌人(机翻)'
 	})
 	Target = SilentAim:CreateTargets({Players = true})
 	Mode = SilentAim:CreateDropdown({
 		Name = '模式',
-		List = {'鼠标', '位置'}, -- {'Mouse', 'Position'}
+		List = {'Mouse', 'Position'},
 		Function = function(val)
 			if CircleObject then
 				CircleObject.Visible = SilentAim.Enabled and val == 'Mouse'
 			end
 		end,
-		Tooltip = '鼠标 - 检查鼠标位置附近的实体\n位置 - 检查本地角色附近的实体'
+		Tooltip = 'Mouse - Checks for entities near the mouses position\nPosition - Checks for entities near the local character'
 	})
 	Method = SilentAim:CreateDropdown({
 		Name = '方法',
@@ -1374,15 +1353,15 @@ run(function()
 			end
 			MethodRay.Object.Visible = val == 'Raycast'
 		end,
-		Tooltip = 'FindPartOnRay* - 旧游戏中使用的已弃用的射线投射方法\nRaycast - 现代的射线投射方法\nPointToRay - 从屏幕坐标生成射线的方法\nRay - 挂钩Ray.new'
+		Tooltip = 'FindPartOnRay* - Deprecated methods of raycasting used in old games\nRaycast - The modern raycast method\nPointToRay - Method to generate a ray from screen coords\nRay - Hooking Ray.new'
 	})
 	MethodRay = SilentAim:CreateDropdown({
-		Name = '射线投射类型',
-		List = {'所有', '排除', '包含'}, -- {'All', 'Exclude', 'Include'}
+		Name = 'Raycast类型',
+		List = {'所有', '黑名单', '白名单'},
 		Darker = true,
 		Visible = false
 	})
-	IgnoredScripts = SilentAim:CreateTextList({Name = '忽略的脚本'})
+	IgnoredScripts = SilentAim:CreateTextList({Name = 'Ignored Scripts'})
 	Range = SilentAim:CreateSlider({
 		Name = '范围',
 		Min = 1,
@@ -1394,7 +1373,7 @@ run(function()
 			end
 		end,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 	HitChance = SilentAim:CreateSlider({
@@ -1405,7 +1384,7 @@ run(function()
 		Suffix = '%'
 	})
 	HeadshotChance = SilentAim:CreateSlider({
-		Name = '爆头率',
+		Name = '爆头几率',
 		Min = 0,
 		Max = 100,
 		Default = 65,
@@ -1420,25 +1399,25 @@ run(function()
 		end
 	})
 	AutoFireShootDelay = SilentAim:CreateSlider({
-		Name = '下次射击延迟',
+		Name = '下次开火延迟',
 		Min = 0,
 		Max = 1,
 		Decimal = 100,
 		Visible = false,
 		Darker = true,
 		Suffix = function(val)
-			return '秒'
+			return val == 1 and 'second' or 'seconds'
 		end
 	})
 	AutoFireMode = SilentAim:CreateDropdown({
-		Name = '原点',
-		List = {'主干部分', '相机'}, -- {'RootPart', 'Camera'}
+		Name = '自动开火？模式',
+		List = {'RootPart', 'Camera'},
 		Visible = false,
 		Darker = true,
-		Tooltip = '决定射击前检查的位置'
+		Tooltip = 'Determines the position to check for before shooting'
 	})
 	AutoFirePosition = SilentAim:CreateTextBox({
-		Name = '偏移',
+		Name = '抵消(可能是偏移)',
 		Function = function()
 			local suc, res = pcall(function()
 				return CFrame.new(unpack(AutoFirePosition.Value:split(',')))
@@ -1449,7 +1428,7 @@ run(function()
 		Visible = false,
 		Darker = true
 	})
-	Wallbang = SilentAim:CreateToggle({Name = '穿墙'})
+	Wallbang = SilentAim:CreateToggle({Name = 'Wallbang'})
 	SilentAim:CreateToggle({
 		Name = '范围圈',
 		Function = function(callback)
@@ -1474,7 +1453,7 @@ run(function()
 		end
 	})
 	CircleColor = SilentAim:CreateColorSlider({
-		Name = '范围圈颜色',
+		Name = '圈颜色',
 		Function = function(hue, sat, val)
 			if CircleObject then
 				CircleObject.Color = Color3.fromHSV(hue, sat, val)
@@ -1498,7 +1477,7 @@ run(function()
 		Visible = false
 	})
 	CircleFilled = SilentAim:CreateToggle({
-		Name = '填充范围圈',
+		Name = '圈填充',
 		Function = function(callback)
 			if CircleObject then
 				CircleObject.Filled = callback
@@ -1508,7 +1487,7 @@ run(function()
 		Visible = false
 	})
 	Projectile = SilentAim:CreateToggle({
-		Name = '抛射物',
+		Name = '弹丸',
 		Function = function(callback)
 			ProjectileSpeed.Object.Visible = callback
 			ProjectileGravity.Object.Visible = callback
@@ -1522,7 +1501,7 @@ run(function()
 		Darker = true,
 		Visible = false,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 	ProjectileGravity = SilentAim:CreateSlider({
@@ -1558,7 +1537,7 @@ run(function()
 	end
 	
 	TriggerBot = vape.Categories.Combat:CreateModule({
-		Name = '触发机器人',
+		Name = '自动触发',
 		Function = function(callback)
 			if callback then
 				repeat
@@ -1598,14 +1577,14 @@ run(function()
 		NPCs = true
 	})
 	ShootDelay = TriggerBot:CreateSlider({
-		Name = '下次射击延迟',
+		Name = '射击间隔',
 		Min = 0,
 		Max = 1,
 		Decimal = 100,
 		Suffix = function(val)
-			return '秒'
+			return val == 1 and 'second' or 'seconds'
 		end,
-		Tooltip = '射击一个目标后的延迟'
+		Tooltip = 'The delay set after shooting a target'
 	})
 	Distance = TriggerBot:CreateSlider({
 		Name = '距离',
@@ -1613,7 +1592,7 @@ run(function()
 		Max = 1000,
 		Default = 1000,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 end)
@@ -1629,7 +1608,7 @@ run(function()
 	local part
 	
 	AntiFall = vape.Categories.Blatant:CreateModule({
-		Name = '防掉落',
+		Name = '防坠落',
 		Function = function(callback)
 			if callback then
 				if Method.Value == 'Part' then
@@ -1684,11 +1663,11 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '帮助你应对帕金森\n防止你掉入虚空。'
+		Tooltip = 'Help\'s you with your Parkinson\'s\nPrevents you from falling into the void.'
 	})
 	Method = AntiFall:CreateDropdown({
-		Name = '方法',
-		List = {'部件', '经典'}, -- {'Part', 'Classic'}
+		Name = '方式',
+		List = {'Part', 'Classic'},
 		Function = function(val)
 			if Mode.Object then
 				Mode.Object.Visible = val == 'Part'
@@ -1700,18 +1679,18 @@ run(function()
 				AntiFall:Toggle()
 			end
 		end,
-		Tooltip = '部件 - 在你下方移动一个部件，用各种方法阻止你掉落\n经典 - 到达部件销毁平面后将你传送出虚空'
+		Tooltip = 'Part - Moves a part under you that does various methods to stop you from falling\nClassic - Teleports you out of the void after reaching the part destroy plane'
 	})
 	Mode = AntiFall:CreateDropdown({
-		Name = '移动模式',
-		List = {'冲量', '速度', '碰撞'}, -- {'Impulse', 'Velocity', 'Collide'}
+		Name = '移动方式',
+		List = {'Impulse', 'Velocity', 'Collide'},
 		Darker = true,
 		Function = function(val)
 			if part then
 				part.CanCollide = val == 'Collide'
 			end
 		end,
-		Tooltip = '速度 - 接触后将你向上弹射\n碰撞 - 允许你在此部件上行走'
+		Tooltip = 'Velocity - Launches you upward after touching\nCollide - Allows you to walk on the part'
 	})
 	local materials = {'ForceField'}
 	for _, v in Enum.Material:GetEnumItems() do
@@ -1720,7 +1699,7 @@ run(function()
 		end
 	end
 	Material = AntiFall:CreateDropdown({
-		Name = '材质',
+		Name = 'Material材质',
 		List = materials,
 		Darker = true,
 		Function = function(val)
@@ -1897,7 +1876,7 @@ run(function()
 		ExtraText = function()
 			return Mode.Value
 		end,
-		Tooltip = '让你飞起来。'
+		Tooltip = 'Makes you go zoom.'
 	})
 	Mode = Fly:CreateDropdown({
 		Name = '速度模式',
@@ -1912,11 +1891,11 @@ run(function()
 				Fly:Toggle()
 			end
 		end,
-		Tooltip = '速度 - 使用平滑的基于物理的移动\n冲量 - 与速度类似，但使用力\nCFrame - 直接调整根部件的位置\nTP - 在一定间隔内进行大范围传送\n脉冲 - 可控的速度爆发\n行走速度 - 经典的速度模式，通常在大多数游戏中都会被检测到。'
+		Tooltip = 'Velocity - Uses smooth physics based movement\nImpulse - Same as velocity while using forces instead\nCFrame - Directly adjusts the position of the root\nTP - Large teleports within intervals\nPulse - Controllable bursts of speed\nWalkSpeed - The classic mode of speed, usually detected on most games.'
 	})
 	FloatMode = Fly:CreateDropdown({
-		Name = '浮空模式',
-		List = {'速度', '冲量', 'CFrame', '弹跳', '地面', '跳跃', 'TP'}, -- {'Velocity', 'Impulse', 'CFrame', 'Bounce', 'Floor', 'Jump', 'TP'}
+		Name = '漂浮模式',
+		List = {'Velocity', 'Impulse', 'CFrame', 'Bounce', 'Floor', 'Jump', 'TP'},
 		Function = function(val)
 			WallCheck.Object.Visible = Mode.Value == 'CFrame' or Mode.Value == 'TP' or val == 'CFrame' or val == 'TP'
 			BounceLength.Object.Visible = val == 'Bounce'
@@ -1937,27 +1916,27 @@ run(function()
 				Platform.Parent = Fly.Enabled and gameCamera or nil
 			end
 		end,
-		Tooltip = '速度 - 使用平滑的基于物理的移动\n冲量 - 与速度类似，但使用力\nCFrame - 直接调整根部件的位置\nTP - 在间隔时间内将您传送到地面\n地面 - 在你脚下生成一个部件\n跳跃 - 低于某个Y值后按空格\n弹跳 - 垂直弹跳运动'
+		Tooltip = 'Velocity - Uses smooth physics based movement\nImpulse - Same as velocity while using forces instead\nCFrame - Directly adjusts the position of the root\nTP - Teleports you to the ground within intervals\nFloor - Spawns a part under you\nJump - Presses space after going below a certain Y Level\nBounce - Vertical bouncing motion'
 	})
-	local states = {'无'} -- 'None'
+	local states = {'None'}
 	for _, v in Enum.HumanoidStateType:GetEnumItems() do
 		if v.Name ~= 'Dead' and v.Name ~= 'None' then
 			table.insert(states, v.Name)
 		end
 	end
 	State = Fly:CreateDropdown({
-		Name = '玩家状态',
+		Name = '保持人棍状态',
 		List = states
 	})
 	MoveMethod = Fly:CreateDropdown({
 		Name = '移动模式',
-		List = {'MoveDirection', 'Direct'},
-		Tooltip = 'MoveDirection - 使用游戏的输入向量进行移动\nDirect - 直接计算我们自己的输入向量'
+		List = {'方向移动', '直接'},
+		Tooltip = 'MoveDirection - Uses the games input vector for movement\nDirect - Directly calculate our own input vector'
 	})
 	Keys = Fly:CreateDropdown({
-		Name = '按键',
+		Name = '按键控制',
 		List = {'Space/LeftControl', 'Space/LeftShift', 'E/Q', 'Space/Q', 'ButtonA/ButtonL2'},
-		Tooltip = '用于上升和下降的按键组合'
+		Tooltip = 'The key combination for going up & down'
 	})
 	Options.Value = Fly:CreateSlider({
 		Name = '速度',
@@ -1965,59 +1944,59 @@ run(function()
 		Max = 150,
 		Default = 50,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 	VerticalValue = Fly:CreateSlider({
-		Name = '垂直速度',
+		Name = 'y轴速度',
 		Min = 1,
 		Max = 150,
 		Default = 50,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 	Options.TPFrequency = Fly:CreateSlider({
-		Name = 'TP 频率',
+		Name = 'TP频率',
 		Min = 0,
 		Max = 1,
 		Decimal = 100,
 		Darker = true,
 		Visible = false,
 		Suffix = function(val)
-			return '秒'
+			return val == 1 and 'second' or 'seconds'
 		end
 	})
 	Options.PulseLength = Fly:CreateSlider({
-		Name = '脉冲长度',
+		Name = 'Pulse 频率',
 		Min = 0,
 		Max = 1,
 		Decimal = 100,
 		Darker = true,
 		Visible = false,
 		Suffix = function(val)
-			return '秒'
+			return val == 1 and 'second' or 'seconds'
 		end
 	})
 	Options.PulseDelay = Fly:CreateSlider({
-		Name = '脉冲延迟',
+		Name = 'Pulse 延迟',
 		Min = 0,
 		Max = 1,
 		Decimal = 100,
 		Darker = true,
 		Visible = false,
 		Suffix = function(val)
-			return '秒'
+			return val == 1 and 'second' or 'seconds'
 		end
 	})
 	BounceLength = Fly:CreateSlider({
-		Name = '弹跳长度',
+		Name = '弹跳频率',
 		Min = 0,
 		Max = 30,
 		Darker = true,
 		Visible = false,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 	BounceDelay = Fly:CreateSlider({
@@ -2028,7 +2007,7 @@ run(function()
 		Darker = true,
 		Visible = false,
 		Suffix = function(val)
-			return '秒'
+			return val == 1 and 'second' or 'seconds'
 		end
 	})
 	FloatTPGround = Fly:CreateSlider({
@@ -2040,11 +2019,11 @@ run(function()
 		Darker = true,
 		Visible = false,
 		Suffix = function(val)
-			return '秒'
+			return val == 1 and 'second' or 'seconds'
 		end
 	})
 	FloatTPAir = Fly:CreateSlider({
-		Name = '空中',
+		Name = '空气',
 		Min = 0,
 		Max = 5,
 		Decimal = 10,
@@ -2052,27 +2031,27 @@ run(function()
 		Darker = true,
 		Visible = false,
 		Suffix = function(val)
-			return '秒'
+			return val == 1 and 'second' or 'seconds'
 		end
 	})
 	WallCheck = Fly:CreateToggle({
-		Name = '墙壁检查',
+		Name = '墙体判断',
 		Default = true,
 		Darker = true,
 		Visible = false
 	})
 	Options.WallCheck = WallCheck
 	PlatformStanding = Fly:CreateToggle({
-		Name = '平台站立',
+		Name = '平台架',
 		Function = function(callback)
 			if Fly.Enabled then
 				entitylib.character.Humanoid.PlatformStand = callback
 			end
 		end,
-		Tooltip = '强制角色面向镜头前方'
+		Tooltip = 'Forces the character to look infront of the camera'
 	})
 	CustomProperties = Fly:CreateToggle({
-		Name = '自定义属性',
+		Name = 'Custom Properties',
 		Function = function()
 			if Fly.Enabled then
 				Fly:Toggle()
@@ -2135,24 +2114,24 @@ run(function()
 		ExtraText = function()
 			return Mode.Value
 		end,
-		Tooltip = '让你跳得更高'
+		Tooltip = 'Lets you jump higher'
 	})
 	Mode = HighJump:CreateDropdown({
-		Name = '模式',
-		List = {'冲量', '速度', 'CFrame', '瞬间'}, -- {'Impulse', 'Velocity', 'CFrame', 'Instant'}
-		Tooltip = '速度 - 使用平滑的移动将你向上提升\n冲量 - 与速度类似，但使用力\nCFrame - 直接向上调整位置\n瞬间 - 将你传送到跳跃的最高点'
+		Name = '方式',
+		List = {'Impulse', 'Velocity', 'CFrame', 'Instant'},
+		Tooltip = 'Velocity - Uses smooth movement to boost you upward\nImpulse - Same as velocity while using forces instead\nCFrame - Directly adjusts the position upward\nInstant - Teleports you to the peak of the jump'
 	})
 	Value = HighJump:CreateSlider({
-		Name = '速度',
+		Name = 'Velocity',
 		Min = 1,
 		Max = 150,
 		Default = 50,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 	AutoDisable = HighJump:CreateToggle({
-		Name = '自动禁用',
+		Name = '单次',
 		Default = true
 	})
 end)
@@ -2165,7 +2144,7 @@ run(function()
 	local modified = {}
 	
 	HitBoxes = vape.Categories.Blatant:CreateModule({
-		Name = '命中框',
+		Name = '范围',
 		Function = function(callback)
 			if callback then
 				repeat
@@ -2189,20 +2168,20 @@ run(function()
 				table.clear(modified)
 			end
 		end,
-		Tooltip = '扩大实体的命中框'
+		Tooltip = 'Expands entities hitboxes'
 	})
 	Targets = HitBoxes:CreateTargets({Players = true})
 	TargetPart = HitBoxes:CreateDropdown({
 		Name = '部位',
-		List = {'主干部分', '头部'} -- {'RootPart', 'Head'}
+		List = {'RootPart', 'Head'}
 	})
 	Expand = HitBoxes:CreateSlider({
-		Name = '扩大数量',
+		Name = 'Expand amount',
 		Min = 0,
 		Max = 2,
 		Decimal = 10,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 end)
@@ -2308,11 +2287,11 @@ run(function()
 	end
 	
 	Invisible = vape.Categories.Blatant:CreateModule({
-		Name = '隐身',
+		Name = 'Invisible',
 		Function = function(callback)
 			if callback then
 				if not proper then
-					notif('隐身', '检测到损坏状态', 3, 'alert')
+					notif('Invisible', 'Broken state detected', 3, 'alert')
 					Invisible:Toggle()
 					return
 				end
@@ -2363,7 +2342,7 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '让你隐身。'
+		Tooltip = 'Turns you invisible.'
 	})
 end)
 	
@@ -2398,7 +2377,7 @@ run(function()
 	end
 	
 	Killaura = vape.Categories.Blatant:CreateModule({
-		Name = '杀戮光环',
+		Name = 'Killaura',
 		Function = function(callback)
 			if callback then
 				repeat
@@ -2475,50 +2454,50 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '攻击你周围的玩家\n无需瞄准他们。'
+		Tooltip = 'Attack players around you\nwithout aiming at them.'
 	})
 	Targets = Killaura:CreateTargets({Players = true})
 	CPS = Killaura:CreateTwoSlider({
-		Name = '每秒攻击次数',
+		Name = 'Attacks per Second',
 		Min = 1,
 		Max = 20,
 		DefaultMin = 12,
 		DefaultMax = 12
 	})
 	SwingRange = Killaura:CreateSlider({
-		Name = '挥动范围',
+		Name = 'Swing range',
 		Min = 1,
 		Max = 30,
 		Default = 13,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 	AttackRange = Killaura:CreateSlider({
-		Name = '攻击范围',
+		Name = 'Attack range',
 		Min = 1,
 		Max = 30,
 		Default = 13,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 	AngleSlider = Killaura:CreateSlider({
-		Name = '最大角度',
+		Name = 'Max angle',
 		Min = 1,
 		Max = 360,
 		Default = 90
 	})
 	Max = Killaura:CreateSlider({
-		Name = '最大目标数',
+		Name = 'Max targets',
 		Min = 1,
 		Max = 10,
 		Default = 10
 	})
-	Mouse = Killaura:CreateToggle({Name = '需要按下鼠标'})
-	Lunge = Killaura:CreateToggle({Name = '仅剑冲刺'})
+	Mouse = Killaura:CreateToggle({Name = 'Require mouse down'})
+	Lunge = Killaura:CreateToggle({Name = 'Sword lunge only'})
 	Killaura:CreateToggle({
-		Name = '显示目标',
+		Name = 'Show target',
 		Function = function(callback)
 			BoxSwingColor.Object.Visible = callback
 			BoxAttackColor.Object.Visible = callback
@@ -2542,20 +2521,20 @@ run(function()
 		end
 	})
 	BoxSwingColor = Killaura:CreateColorSlider({
-		Name = '目标颜色',
+		Name = 'Target Color',
 		Darker = true,
 		DefaultHue = 0.6,
 		DefaultOpacity = 0.5,
 		Visible = false
 	})
 	BoxAttackColor = Killaura:CreateColorSlider({
-		Name = '攻击颜色',
+		Name = 'Attack Color',
 		Darker = true,
 		DefaultOpacity = 0.5,
 		Visible = false
 	})
 	Killaura:CreateToggle({
-		Name = '目标粒子效果',
+		Name = 'Target particles',
 		Function = function(callback)
 			ParticleTexture.Object.Visible = callback
 			ParticleColor1.Object.Visible = callback
@@ -2597,7 +2576,7 @@ run(function()
 		end
 	})
 	ParticleTexture = Killaura:CreateTextBox({
-		Name = '纹理',
+		Name = 'Texture',
 		Default = 'rbxassetid://14736249347',
 		Function = function()
 			for _, v in Particles do
@@ -2608,7 +2587,7 @@ run(function()
 		Visible = false
 	})
 	ParticleColor1 = Killaura:CreateColorSlider({
-		Name = '颜色开始',
+		Name = 'Color Begin',
 		Function = function(hue, sat, val)
 			for _, v in Particles do
 				v.ParticleEmitter.Color = ColorSequence.new({
@@ -2621,7 +2600,7 @@ run(function()
 		Visible = false
 	})
 	ParticleColor2 = Killaura:CreateColorSlider({
-		Name = '颜色结束',
+		Name = 'Color End',
 		Function = function(hue, sat, val)
 			for _, v in Particles do
 				v.ParticleEmitter.Color = ColorSequence.new({
@@ -2634,7 +2613,7 @@ run(function()
 		Visible = false
 	})
 	ParticleSize = Killaura:CreateSlider({
-		Name = '大小',
+		Name = 'Size',
 		Min = 0,
 		Max = 1,
 		Default = 0.2,
@@ -2647,7 +2626,7 @@ run(function()
 		Darker = true,
 		Visible = false
 	})
-	Face = Killaura:CreateToggle({Name = '面向目标'})
+	Face = Killaura:CreateToggle({Name = 'Face target'})
 end)
 	
 run(function()
@@ -2656,7 +2635,7 @@ run(function()
 	local AutoDisable
 	
 	LongJump = vape.Categories.Blatant:CreateModule({
-		Name = '远跳',
+		Name = 'LongJump',
 		Function = function(callback)
 			if callback then
 				local exempt = tick() + 0.1
@@ -2691,24 +2670,24 @@ run(function()
 		ExtraText = function()
 			return Mode.Value
 		end,
-		Tooltip = '让你跳得更远'
+		Tooltip = 'Lets you jump farther'
 	})
 	Mode = LongJump:CreateDropdown({
-		Name = '模式',
-		List = {'速度', '冲量', 'CFrame'}, -- {'Velocity', 'Impulse', 'CFrame'}
-		Tooltip = '速度 - 使用平滑的基于物理的移动\n冲量 - 与速度类似，但使用力\nCFrame - 直接调整根部件的位置'
+		Name = 'Mode',
+		List = {'Velocity', 'Impulse', 'CFrame'},
+		Tooltip = 'Velocity - Uses smooth physics based movement\nImpulse - Same as velocity while using forces instead\nCFrame - Directly adjusts the position of the root'
 	})
 	Value = LongJump:CreateSlider({
-		Name = '速度',
+		Name = 'Speed',
 		Min = 1,
 		Max = 150,
 		Default = 50,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 	AutoDisable = LongJump:CreateToggle({
-		Name = '自动禁用',
+		Name = 'Auto Disable',
 		Default = true
 	})
 end)
@@ -2736,7 +2715,7 @@ run(function()
 	end
 	
 	MouseTP = vape.Categories.Blatant:CreateModule({
-		Name = '鼠标传送',
+		Name = 'MouseTP',
 		Function = function(callback)
 			if callback then
 				local position
@@ -2758,7 +2737,7 @@ run(function()
 				end
 	
 				if not position then
-					notif('鼠标传送', '未找到位置。', 5)
+					notif('MouseTP', 'No position found.', 5)
 					MouseTP:Toggle()
 					return
 				end
@@ -2788,7 +2767,7 @@ run(function()
 							end
 						elseif MouseTP.Enabled then
 							MouseTP:Toggle()
-							notif('鼠标传送', '角色缺失', 5, 'warning')
+							notif('MouseTP', 'Character missing', 5, 'warning')
 						end
 	
 						task.wait(Delay.Value)
@@ -2796,39 +2775,39 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '传送到选定位置。'
+		Tooltip = 'Teleports to a selected position.'
 	})
 	Mode = MouseTP:CreateDropdown({
-		Name = '模式',
-		List = {'鼠标', '玩家', '路径点'} -- {'Mouse', 'Player', 'Waypoint'}
+		Name = 'Mode',
+		List = {'Mouse', 'Player', 'Waypoint'}
 	})
 	MovementMode = MouseTP:CreateDropdown({
-		Name = '移动',
-		List = {'CFrame', '马达', '插值'}, -- {'CFrame', 'Motor', 'Lerp'}
+		Name = 'Movement',
+		List = {'CFrame', 'Motor', 'Lerp'},
 		Function = function(val)
 			Length.Object.Visible = val == 'Lerp'
 			Delay.Object.Visible = val == 'Lerp'
 		end
 	})
 	Length = MouseTP:CreateSlider({
-		Name = '长度',
+		Name = 'Length',
 		Min = 0,
 		Max = 150,
 		Darker = true,
 		Visible = false,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 	Delay = MouseTP:CreateSlider({
-		Name = '延迟',
+		Name = 'Delay',
 		Min = 0,
 		Max = 1,
 		Decimal = 100,
 		Darker = true,
 		Visible = false,
 		Suffix = function(val)
-			return '秒'
+			return val == 1 and 'second' or 'seconds'
 		end
 	})
 end)
@@ -2919,7 +2898,7 @@ run(function()
 	Functions.Motor = Functions.CFrame
 	
 	Phase = vape.Categories.Blatant:CreateModule({
-		Name = '穿墙',
+		Name = 'Phase',
 		Function = function(callback)
 			if callback then
 				Phase:Clean(runService.Stepped:Connect(function()
@@ -2945,11 +2924,11 @@ run(function()
 				fflag = nil
 			end
 		end,
-		Tooltip = '让你能够穿墙。(按住Shift以优先使用穿墙而非爬墙)'
+		Tooltip = 'Lets you Phase/Clip through walls. (Hold shift to use Phase over spider)'
 	})
 	Mode = Phase:CreateDropdown({
-		Name = '模式',
-		List = {'部件', '角色', 'CFrame', '马达', 'FFlag'}, -- {'Part', 'Character', 'CFrame', 'Motor', 'FFlag'}
+		Name = 'Mode',
+		List = {'Part', 'Character', 'CFrame', 'Motor', 'FFlag'},
 		Function = function(val)
 			StudLimit.Object.Visible = val == 'CFrame' or val == 'Motor'
 			if fflag then
@@ -2961,15 +2940,15 @@ run(function()
 			table.clear(modified)
 			fflag = nil
 		end,
-		Tooltip = '部件 - 修改你周围部件的碰撞状态\n角色 - 修改角色的本地碰撞状态\nCFrame - 将你传送到部件后面\n马达 - 与CFrame相同，但有绕过机制\nFFlag - 直接调整所有物理碰撞'
+		Tooltip = 'Part - Modifies parts collision status around you\nCharacter - Modifies the local collision status of the character\nCFrame - Teleports you past parts\nMotor - Same as CFrame with a bypass\nFFlag - Directly adjusts all physics collisions'
 	})
 	StudLimit = Phase:CreateSlider({
-		Name = '墙壁大小',
+		Name = 'Wall Size',
 		Min = 1,
 		Max = 20,
 		Default = 5,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end,
 		Darker = true,
 		Visible = false
@@ -2986,7 +2965,7 @@ run(function()
 	local w, s, a, d = 0, 0, 0, 0
 	
 	Speed = vape.Categories.Blatant:CreateModule({
-		Name = '速度',
+		Name = 'Speed',
 		Function = function(callback)
 			frictionTable.Speed = callback and CustomProperties.Enabled or nil
 			updateVelocity()
@@ -3035,10 +3014,10 @@ run(function()
 		ExtraText = function()
 			return Mode.Value
 		end,
-		Tooltip = '通过各种方法增加你的移动速度。'
+		Tooltip = 'Increases your movement with various methods.'
 	})
 	Mode = Speed:CreateDropdown({
-		Name = '模式',
+		Name = 'Mode',
 		List = SpeedMethodList,
 		Function = function(val)
 			Options.WallCheck.Object.Visible = val == 'CFrame' or val == 'TP'
@@ -3050,58 +3029,58 @@ run(function()
 				Speed:Toggle()
 			end
 		end,
-		Tooltip = '速度 - 使用平滑的基于物理的移动\n冲量 - 与速度类似，但使用力\nCFrame - 直接调整根部件的位置\nTP - 在一定间隔内进行大范围传送\n脉冲 - 可控的速度爆发\n行走速度 - 经典的速度模式，通常在大多数游戏中都会被检测到。'
+		Tooltip = 'Velocity - Uses smooth physics based movement\nImpulse - Same as velocity while using forces instead\nCFrame - Directly adjusts the position of the root\nTP - Large teleports within intervals\nPulse - Controllable bursts of speed\nWalkSpeed - The classic mode of speed, usually detected on most games.'
 	})
 	Options = {
 		MoveMethod = Speed:CreateDropdown({
-			Name = '移动模式',
+			Name = 'Move Mode',
 			List = {'MoveDirection', 'Direct'},
-			Tooltip = 'MoveDirection - 使用游戏的输入向量进行移动\nDirect - 直接计算我们自己的输入向量'
+			Tooltip = 'MoveDirection - Uses the games input vector for movement\nDirect - Directly calculate our own input vector'
 		}),
 		Value = Speed:CreateSlider({
-			Name = '速度',
+			Name = 'Speed',
 			Min = 1,
 			Max = 150,
 			Default = 50,
 			Suffix = function(val)
-				return '单位'
+				return val == 1 and 'stud' or 'studs'
 			end
 		}),
 		TPFrequency = Speed:CreateSlider({
-			Name = 'TP 频率',
+			Name = 'TP Frequency',
 			Min = 0,
 			Max = 1,
 			Decimal = 100,
 			Darker = true,
 			Visible = false,
 			Suffix = function(val)
-				return '秒'
+				return val == 1 and 'second' or 'seconds'
 			end
 		}),
 		PulseLength = Speed:CreateSlider({
-			Name = '脉冲长度',
+			Name = 'Pulse Length',
 			Min = 0,
 			Max = 1,
 			Decimal = 100,
 			Darker = true,
 			Visible = false,
 			Suffix = function(val)
-				return '秒'
+				return val == 1 and 'second' or 'seconds'
 			end
 		}),
 		PulseDelay = Speed:CreateSlider({
-			Name = '脉冲延迟',
+			Name = 'Pulse Delay',
 			Min = 0,
 			Max = 1,
 			Decimal = 100,
 			Darker = true,
 			Visible = false,
 			Suffix = function(val)
-				return '秒'
+				return val == 1 and 'second' or 'seconds'
 			end
 		}),
 		WallCheck = Speed:CreateToggle({
-			Name = '墙壁检查',
+			Name = 'Wall Check',
 			Default = true,
 			Darker = true,
 			Visible = false
@@ -3111,7 +3090,7 @@ run(function()
 	}
 	Options.rayCheck.RespectCanCollide = true
 	CustomProperties = Speed:CreateToggle({
-		Name = '自定义属性',
+		Name = 'Custom Properties',
 		Function = function()
 			if Speed.Enabled then
 				Speed:Toggle()
@@ -3121,22 +3100,22 @@ run(function()
 		Default = true
 	})
 	AutoJump = Speed:CreateToggle({
-		Name = '自动跳跃',
+		Name = 'AutoJump',
 		Function = function(callback)
 			AutoJumpCustom.Object.Visible = callback
 		end
 	})
 	AutoJumpCustom = Speed:CreateToggle({
-		Name = '自定义跳跃',
+		Name = 'Custom Jump',
 		Function = function(callback)
 			AutoJumpValue.Object.Visible = callback
 		end,
-		Tooltip = '允许你调整跳跃力度',
+		Tooltip = 'Allows you to adjust the jump power',
 		Darker = true,
 		Visible = false
 	})
 	AutoJumpValue = Speed:CreateSlider({
-		Name = '跳跃力度',
+		Name = 'Jump Power',
 		Min = 1,
 		Max = 50,
 		Default = 30,
@@ -3154,7 +3133,7 @@ run(function()
 	local Active, Truss
 	
 	Spider = vape.Categories.Blatant:CreateModule({
-		Name = '爬墙',
+		Name = 'Spider',
 		Function = function(callback)
 			if callback then
 				if Truss then Truss.Parent = gameCamera end
@@ -3210,11 +3189,11 @@ run(function()
 				SpiderShift = false
 			end
 		end,
-		Tooltip = '让你能爬墙。(按住Shift以优先使用穿墙而非爬墙)'
+		Tooltip = 'Lets you climb up walls. (Hold shift to use Phase over spider)'
 	})
 	Mode = Spider:CreateDropdown({
-		Name = '模式',
-		List = {'速度', '冲量', 'CFrame', '部件'}, -- {'Velocity', 'Impulse', 'CFrame', 'Part'}
+		Name = 'Mode',
+		List = {'Velocity', 'Impulse', 'CFrame', 'Part'},
 		Function = function(val)
 			Value.Object.Visible = val ~= 'Part'
 			State.Object.Visible = val ~= 'Part'
@@ -3230,20 +3209,20 @@ run(function()
 				Truss.Parent = Spider.Enabled and gameCamera or nil
 			end
 		end,
-		Tooltip = '速度 - 使用平滑的移动将你向上提升\nCFrame - 直接向上调整位置\n部件 - 在你前方放置一个可攀爬的部件'
+		Tooltip = 'Velocity - Uses smooth movement to boost you upward\nCFrame - Directly adjusts the position upward\nPart - Positions a climbable part infront of you'
 	})
 	Value = Spider:CreateSlider({
-		Name = '速度',
+		Name = 'Speed',
 		Min = 0,
 		Max = 100,
 		Default = 30,
 		Darker = true,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 	State = Spider:CreateToggle({
-		Name = '攀爬状态',
+		Name = 'Climb State',
 		Darker = true
 	})
 end)
@@ -3258,7 +3237,7 @@ run(function()
 	local AngularVelocity
 	
 	SpinBot = vape.Categories.Blatant:CreateModule({
-		Name = '旋转机器人',
+		Name = 'SpinBot',
 		Function = function(callback)
 			if callback then
 				SpinBot:Clean(runService.PreSimulation:Connect(function()
@@ -3287,11 +3266,11 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '让你的角色原地转圈（第一人称无效）'
+		Tooltip = 'Makes your character spin around in circles (does not work in first person)'
 	})
 	Mode = SpinBot:CreateDropdown({
-		Name = '模式',
-		List = {'CFrame', '旋转速度', '身体动力'}, -- {'CFrame', 'RotVelocity', 'BodyMover'}
+		Name = 'Mode',
+		List = {'CFrame', 'RotVelocity', 'BodyMover'},
 		Function = function(val)
 			if AngularVelocity then
 				AngularVelocity:Destroy()
@@ -3301,17 +3280,17 @@ run(function()
 		end
 	})
 	Value = SpinBot:CreateSlider({
-		Name = '速度',
+		Name = 'Speed',
 		Min = 1,
 		Max = 100,
 		Default = 40
 	})
-	XToggle = SpinBot:CreateToggle({Name = 'X轴旋转'})
+	XToggle = SpinBot:CreateToggle({Name = 'Spin X'})
 	YToggle = SpinBot:CreateToggle({
-		Name = 'Y轴旋转',
+		Name = 'Spin Y',
 		Default = true
 	})
-	ZToggle = SpinBot:CreateToggle({Name = 'Z轴旋转'})
+	ZToggle = SpinBot:CreateToggle({Name = 'Spin Z'})
 end)
 	
 run(function()
@@ -3320,7 +3299,7 @@ run(function()
 	local lastpos = Region3.new(Vector3.zero, Vector3.zero)
 	
 	Swim = vape.Categories.Blatant:CreateModule({
-		Name = '游泳',
+		Name = 'Swim',
 		Function = function(callback)
 			if callback then
 				Swim:Clean(runService.PreSimulation:Connect(function(dt)
@@ -3346,7 +3325,7 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '让你能在空中游泳'
+		Tooltip = 'Lets you swim midair'
 	})
 end)
 	
@@ -3361,7 +3340,7 @@ run(function()
 	local module, old
 	
 	TargetStrafe = vape.Categories.Blatant:CreateModule({
-		Name = '目标扫射',
+		Name = 'TargetStrafe',
 		Function = function(callback)
 			if callback then
 				if not module then
@@ -3436,32 +3415,32 @@ run(function()
 				TargetStrafeVector = nil
 			end
 		end,
-		Tooltip = '自动围绕对手进行扫射移动'
+		Tooltip = 'Automatically strafes around the opponent'
 	})
 	Targets = TargetStrafe:CreateTargets({
 		Players = true,
 		Walls = true
 	})
 	SearchRange = TargetStrafe:CreateSlider({
-		Name = '搜索范围',
+		Name = 'Search Range',
 		Min = 1,
 		Max = 30,
 		Default = 24,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 	StrafeRange = TargetStrafe:CreateSlider({
-		Name = '扫射范围',
+		Name = 'Strafe Range',
 		Min = 1,
 		Max = 30,
 		Default = 18,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 	YFactor = TargetStrafe:CreateSlider({
-		Name = 'Y 因子',
+		Name = 'Y Factor',
 		Min = 0,
 		Max = 100,
 		Default = 100,
@@ -3474,7 +3453,7 @@ run(function()
 	local Value
 	
 	Timer = vape.Categories.Blatant:CreateModule({
-		Name = '计时器',
+		Name = 'Timer',
 		Function = function(callback)
 			if callback then
 				setfflag('SimEnableStepPhysics', 'True')
@@ -3488,10 +3467,10 @@ run(function()
 				end))
 			end
 		end,
-		Tooltip = '改变游戏速度。'
+		Tooltip = 'Change the game speed.'
 	})
 	Value = Timer:CreateSlider({
-		Name = '值',
+		Name = 'Value',
 		Min = 1,
 		Max = 3,
 		Decimal = 10
@@ -3568,7 +3547,7 @@ run(function()
 	end
 	
 	Arrows = vape.Categories.Render:CreateModule({
-		Name = '箭头',
+		Name = 'Arrows',
 		Function = function(callback)
 			if callback then
 				Arrows:Clean(entitylib.Events.EntityRemoved:Connect(Removed))
@@ -3590,7 +3569,7 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '当实体离开你的视野时，\n在屏幕上绘制箭头。'
+		Tooltip = 'Draws arrows on screen when entities\nare out of your field of view.'
 	})
 	Targets = Arrows:CreateTargets({
 		Players = true,
@@ -3602,7 +3581,7 @@ run(function()
 		end
 	})
 	Color = Arrows:CreateColorSlider({
-		Name = '玩家颜色',
+		Name = 'Player Color',
 		Function = function(hue, sat, val)
 			if Arrows.Enabled then
 				ColorFunc(hue, sat, val)
@@ -3610,7 +3589,7 @@ run(function()
 		end,
 	})
 	Teammates = Arrows:CreateToggle({
-		Name = '仅优先',
+		Name = 'Priority Only',
 		Function = function()
 			if Arrows.Enabled then
 				Arrows:Toggle()
@@ -3618,16 +3597,16 @@ run(function()
 			end
 		end,
 		Default = true,
-		Tooltip = '隐藏队友和非目标实体'
+		Tooltip = 'Hides teammates & non targetable entities'
 	})
 	Distance = Arrows:CreateToggle({
-		Name = '距离检查',
+		Name = 'Distance Check',
 		Function = function(callback)
 			DistanceLimit.Object.Visible = callback
 		end
 	})
 	DistanceLimit = Arrows:CreateTwoSlider({
-		Name = '玩家距离',
+		Name = 'Player Distance',
 		Min = 0,
 		Max = 256,
 		DefaultMin = 0,
@@ -3710,7 +3689,7 @@ run(function()
 	end
 	
 	Chams = vape.Categories.Render:CreateModule({
-		Name = '人物高亮',
+		Name = 'Chams',
 		Function = function(callback)
 			if callback then
 				Chams:Clean(entitylib.Events.EntityRemoved:Connect(Removed))
@@ -3742,7 +3721,7 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '透过墙壁渲染玩家'
+		Tooltip = 'Render players through walls'
 	})
 	Targets = Chams:CreateTargets({
 		Players = true,
@@ -3754,8 +3733,8 @@ run(function()
 		end
 		})
 	Mode = Chams:CreateDropdown({
-		Name = '模式',
-		List = {'高亮', '方框手柄'}, -- {'Highlight', 'BoxHandles'}
+		Name = 'Mode',
+		List = {'Highlight', 'BoxHandles'},
 		Function = function(val)
 			OutlineColor.Object.Visible = val == 'Highlight'
 			OutlineTransparency.Object.Visible = val == 'Highlight'
@@ -3766,7 +3745,7 @@ run(function()
 		end
 	})
 	FillColor = Chams:CreateColorSlider({
-		Name = '颜色',
+		Name = 'Color',
 		Function = function(hue, sat, val)
 			for i, v in Reference do
 				local color = entitylib.getEntityColor(i) or Color3.fromHSV(hue, sat, val)
@@ -3779,7 +3758,7 @@ run(function()
 		end
 	})
 	OutlineColor = Chams:CreateColorSlider({
-		Name = '轮廓颜色',
+		Name = 'Outline Color',
 		DefaultSat = 0,
 		Function = function(hue, sat, val)
 			for i, v in Reference do
@@ -3807,7 +3786,7 @@ run(function()
 		Decimal = 10
 	})
 	OutlineTransparency = Chams:CreateSlider({
-		Name = '轮廓透明度',
+		Name = 'Outline Transparency',
 		Min = 0,
 		Max = 1,
 		Default = 0.5,
@@ -3822,7 +3801,7 @@ run(function()
 		Darker = true
 	})
 	Walls = Chams:CreateToggle({
-		Name = '穿墙渲染',
+		Name = 'Render Walls',
 		Function = function(callback)
 			for _, v in Reference do
 				if type(v) == 'table' then
@@ -3837,7 +3816,7 @@ run(function()
 		Default = true
 	})
 	Teammates = Chams:CreateToggle({
-		Name = '仅优先',
+		Name = 'Priority Only',
 		Function = function()
 			if Chams.Enabled then
 				Chams:Toggle()
@@ -3845,7 +3824,7 @@ run(function()
 			end
 		end,
 		Default = true,
-		Tooltip = '隐藏队友和非目标实体'
+		Tooltip = 'Hides teammates & non targetable entities'
 	})
 end)
 	
@@ -4217,7 +4196,7 @@ run(function()
 	}
 	
 	ESP = vape.Categories.Render:CreateModule({
-		Name = '透视',
+		Name = 'ESP',
 		Function = function(callback)
 			if callback then
 				methodused = 'Drawing'..Method.Value
@@ -4260,7 +4239,7 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '超感官知觉\n在玩家身上渲染透视效果。'
+		Tooltip = 'Extra Sensory Perception\nRenders an ESP on players.'
 	})
 	Targets = ESP:CreateTargets({
 		Players = true,
@@ -4272,8 +4251,8 @@ run(function()
 		end
 	})
 	Method = ESP:CreateDropdown({
-		Name = '模式',
-		List = {'2D', '3D', '骨骼'}, -- {'2D', '3D', 'Skeleton'}
+		Name = 'Mode',
+		List = {'2D', '3D', 'Skeleton'},
 		Function = function(val)
 			if ESP.Enabled then
 				ESP:Toggle()
@@ -4288,7 +4267,7 @@ run(function()
 		end,
 	})
 	Color = ESP:CreateColorSlider({
-		Name = '玩家颜色',
+		Name = 'Player Color',
 		Function = function(hue, sat, val)
 			if ESP.Enabled and ColorFunc[methodused] then
 				ColorFunc[methodused](hue, sat, val)
@@ -4296,7 +4275,7 @@ run(function()
 		end
 	})
 	BoundingBox = ESP:CreateToggle({
-		Name = '边界框',
+		Name = 'Bounding Box',
 		Function = function()
 			if ESP.Enabled then
 				ESP:Toggle()
@@ -4307,7 +4286,7 @@ run(function()
 		Darker = true
 	})
 	Filled = ESP:CreateToggle({
-		Name = '填充',
+		Name = 'Filled',
 		Function = function()
 			if ESP.Enabled then
 				ESP:Toggle()
@@ -4317,7 +4296,7 @@ run(function()
 		Darker = true
 	})
 	HealthBar = ESP:CreateToggle({
-		Name = '血条',
+		Name = 'Health Bar',
 		Function = function()
 			if ESP.Enabled then
 				ESP:Toggle()
@@ -4327,7 +4306,7 @@ run(function()
 		Darker = true
 	})
 	Name = ESP:CreateToggle({
-		Name = '名称',
+		Name = 'Name',
 		Function = function(callback)
 			if ESP.Enabled then
 				ESP:Toggle()
@@ -4339,7 +4318,7 @@ run(function()
 		Darker = true
 	})
 	DisplayName = ESP:CreateToggle({
-		Name = '使用显示名称',
+		Name = 'Use Displayname',
 		Function = function()
 			if ESP.Enabled then
 				ESP:Toggle()
@@ -4350,7 +4329,7 @@ run(function()
 		Darker = true
 	})
 	Background = ESP:CreateToggle({
-		Name = '显示背景',
+		Name = 'Show Background',
 		Function = function()
 			if ESP.Enabled then
 				ESP:Toggle()
@@ -4360,7 +4339,7 @@ run(function()
 		Darker = true
 	})
 	Teammates = ESP:CreateToggle({
-		Name = '仅优先',
+		Name = 'Priority Only',
 		Function = function()
 			if ESP.Enabled then
 				ESP:Toggle()
@@ -4368,16 +4347,16 @@ run(function()
 			end
 		end,
 		Default = true,
-		Tooltip = '隐藏队友和非目标实体'
+		Tooltip = 'Hides teammates & non targetable entities'
 	})
 	Distance = ESP:CreateToggle({
-		Name = '距离检查',
+		Name = 'Distance Check',
 		Function = function(callback)
 			DistanceLimit.Object.Visible = callback
 		end
 	})
 	DistanceLimit = ESP:CreateTwoSlider({
-		Name = '玩家距离',
+		Name = 'Player Distance',
 		Min = 0,
 		Max = 256,
 		DefaultMin = 0,
@@ -4403,7 +4382,7 @@ run(function()
 	local chair
 	
 	GamingChair = vape.Categories.Render:CreateModule({
-		Name = '电竞椅',
+		Name = 'GamingChair',
 		Function = function(callback)
 			if callback then
 				if vape.ThreadFix then
@@ -4600,10 +4579,10 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '坐上人类已知的最好的电竞椅。'
+		Tooltip = 'Sit in the best gaming chair known to mankind.'
 	})
 	Color = GamingChair:CreateColorSlider({
-		Name = '颜色',
+		Name = 'Color',
 		Function = function(h, s, v)
 			if chairhighlight then
 				chairhighlight.OutlineColor = Color3.fromHSV(h, s, v)
@@ -4616,7 +4595,7 @@ run(function()
 	local Health
 	
 	Health = vape.Categories.Render:CreateModule({
-		Name = '生命值',
+		Name = 'Health',
 		Function = function(callback)
 			if callback then
 				local label = Instance.new('TextLabel')
@@ -4637,7 +4616,7 @@ run(function()
 				until not Health.Enabled
 			end
 		end,
-		Tooltip = '在屏幕中央显示你的生命值。'
+		Tooltip = 'Displays your health in the center of your screen.'
 	})
 end)
 	
@@ -4888,7 +4867,7 @@ run(function()
 	}
 	
 	NameTags = vape.Categories.Render:CreateModule({
-		Name = '名字标签',
+		Name = 'NameTags',
 		Function = function(callback)
 			if callback then
 				methodused = DrawingToggle.Enabled and 'Drawing' or 'Normal'
@@ -4931,7 +4910,7 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '在实体上渲染可穿墙的名字标签。'
+		Tooltip = 'Renders nametags on entities through walls.'
 	})
 	Targets = NameTags:CreateTargets({
 		Players = true,
@@ -4943,7 +4922,7 @@ run(function()
 		end
 	})
 	FontOption = NameTags:CreateFont({
-		Name = '字体',
+		Name = 'Font',
 		Blacklist = 'Arial',
 		Function = function()
 			if NameTags.Enabled then
@@ -4953,7 +4932,7 @@ run(function()
 		end
 	})
 	Color = NameTags:CreateColorSlider({
-		Name = '玩家颜色',
+		Name = 'Player Color',
 		Function = function(hue, sat, val)
 			if NameTags.Enabled and ColorFunc[methodused] then
 				ColorFunc[methodused](hue, sat, val)
@@ -4961,7 +4940,7 @@ run(function()
 		end
 	})
 	Scale = NameTags:CreateSlider({
-		Name = '缩放',
+		Name = 'Scale',
 		Function = function()
 			if NameTags.Enabled then
 				NameTags:Toggle()
@@ -4987,7 +4966,7 @@ run(function()
 		Decimal = 10
 	})
 	Health = NameTags:CreateToggle({
-		Name = '生命值',
+		Name = 'Health',
 		Function = function()
 			if NameTags.Enabled then
 				NameTags:Toggle()
@@ -4996,7 +4975,7 @@ run(function()
 		end
 	})
 	Distance = NameTags:CreateToggle({
-		Name = '距离',
+		Name = 'Distance',
 		Function = function()
 			if NameTags.Enabled then
 				NameTags:Toggle()
@@ -5005,7 +4984,7 @@ run(function()
 		end
 	})
 	DisplayName = NameTags:CreateToggle({
-		Name = '使用显示名称',
+		Name = 'Use Displayname',
 		Function = function()
 			if NameTags.Enabled then
 				NameTags:Toggle()
@@ -5015,7 +4994,7 @@ run(function()
 		Default = true
 	})
 	Teammates = NameTags:CreateToggle({
-		Name = '仅优先',
+		Name = 'Priority Only',
 		Function = function()
 			if NameTags.Enabled then
 				NameTags:Toggle()
@@ -5023,10 +5002,10 @@ run(function()
 			end
 		end,
 		Default = true,
-		Tooltip = '隐藏队友和非目标实体'
+		Tooltip = 'Hides teammates & non targetable entities'
 	})
 	DrawingToggle = NameTags:CreateToggle({
-		Name = '绘图模式',
+		Name = 'Drawing',
 		Function = function()
 			if NameTags.Enabled then
 				NameTags:Toggle()
@@ -5035,13 +5014,13 @@ run(function()
 		end
 	})
 	DistanceCheck = NameTags:CreateToggle({
-		Name = '距离检查',
+		Name = 'Distance Check',
 		Function = function(callback)
 			DistanceLimit.Object.Visible = callback
 		end
 	})
 	DistanceLimit = NameTags:CreateTwoSlider({
-		Name = '玩家距离',
+		Name = 'Player Distance',
 		Min = 0,
 		Max = 256,
 		DefaultMin = 0,
@@ -5092,7 +5071,7 @@ run(function()
 	end
 	
 	PlayerModel = vape.Categories.Render:CreateModule({
-		Name = '玩家模型',
+		Name = 'PlayerModel',
 		Function = function(callback)
 			if callback then 
 				if Local.Enabled then 
@@ -5114,10 +5093,10 @@ run(function()
 				table.clear(models)
 			end
 		end,
-		Tooltip = '将玩家模型更改为网格'
+		Tooltip = 'Change the player models to a Mesh'
 	})
 	Scale = PlayerModel:CreateSlider({
-		Name = '缩放',
+		Name = 'Scale',
 		Min = 0,
 		Max = 2,
 		Default = 1,
@@ -5128,7 +5107,7 @@ run(function()
 			end
 		end
 	})
-	for _, name in {'X轴旋转', 'Y轴旋转', 'Z轴旋转'} do -- {'Rotation X', 'Rotation Y', 'Rotation Z'}
+	for _, name in {'Rotation X', 'Rotation Y', 'Rotation Z'} do 
 		table.insert(Rots, PlayerModel:CreateSlider({
 			Name = name,
 			Min = 0,
@@ -5143,7 +5122,7 @@ run(function()
 		}))
 	end
 	Local = PlayerModel:CreateToggle({
-		Name = '本地',
+		Name = 'Local',
 		Function = function()
 			if PlayerModel.Enabled then 
 				PlayerModel:Toggle()
@@ -5152,8 +5131,8 @@ run(function()
 		end
 	})
 	Mesh = PlayerModel:CreateTextBox({
-		Name = '网格',
-		Placeholder = '网格ID',
+		Name = 'Mesh',
+		Placeholder = 'mesh id',
 		Function = function()
 			for _, part in models do 
 				part.Mesh.MeshId = Mesh.Value
@@ -5161,8 +5140,8 @@ run(function()
 		end
 	})
 	Texture = PlayerModel:CreateTextBox({
-		Name = '纹理',
-		Placeholder = '纹理ID',
+		Name = 'Texture',
+		Placeholder = 'texture id',
 		Function = function()
 			for _, part in models do 
 				part.Mesh.TextureId = Texture.Value
@@ -5217,7 +5196,7 @@ run(function()
 	end
 	
 	Radar = vape:CreateOverlay({
-		Name = '雷达',
+		Name = 'Radar',
 		Icon = getcustomasset('newvape/assets/new/radaricon.png'),
 		Size = UDim2.fromOffset(14, 14),
 		Position = UDim2.fromOffset(12, 13),
@@ -5266,8 +5245,8 @@ run(function()
 		end
 	})
 	DotStyle = Radar:CreateDropdown({
-		Name = '点样式',
-		List = {'圆形', '方形'}, -- {'Circles', 'Squares'}
+		Name = 'Dot Style',
+		List = {'Circles', 'Squares'},
 		Function = function(val)
 			for _, dot in Reference do
 				dot.UICorner.CornerRadius = UDim.new(val == 'Circles' and 1 or 0, 0)
@@ -5275,7 +5254,7 @@ run(function()
 		end
 	})
 	PlayerColor = Radar:CreateColorSlider({
-		Name = '玩家颜色',
+		Name = 'Player Color',
 		Function = function(hue, sat, val)
 			for ent, dot in Reference do
 				dot.BackgroundColor3 = entitylib.getEntityColor(ent) or Color3.fromHSV(hue, sat, val)
@@ -5318,13 +5297,13 @@ run(function()
 	barcorner.CornerRadius = UDim.new(0, 8)
 	barcorner.Parent = bar
 	Radar:CreateColorSlider({
-		Name = '条颜色',
+		Name = 'Bar Color',
 		Function = function(hue, sat, val)
 			bar.BackgroundColor3 = Color3.fromHSV(hue, sat, val)
 		end
 	})
 	Radar:CreateToggle({
-		Name = '显示背景',
+		Name = 'Show Background',
 		Default = true,
 		Function = function(callback)
 			bkg.BackgroundTransparency = callback and 0.5 or 1
@@ -5333,7 +5312,7 @@ run(function()
 		end
 	})
 	Radar:CreateToggle({
-		Name = '显示十字线',
+		Name = 'Show Cross',
 		Default = true,
 		Function = function(callback)
 			line1.BackgroundTransparency = callback and 0.5 or 1
@@ -5341,7 +5320,7 @@ run(function()
 		end
 	})
 	Clamp = Radar:CreateToggle({
-		Name = '限制雷达',
+		Name = 'Clamp Radar',
 		Default = true
 	})
 end)
@@ -5371,7 +5350,7 @@ run(function()
 	end
 	
 	Search = vape.Categories.Render:CreateModule({
-		Name = '搜索',
+		Name = 'Search',
 		Function = function(callback)
 			if callback then
 				Search:Clean(workspace.DescendantAdded:Connect(Add))
@@ -5390,10 +5369,10 @@ run(function()
 				table.clear(Reference)
 			end
 		end,
-		Tooltip = '在选定的部件周围绘制方框\n在搜索框架中添加部件'
+		Tooltip = 'Draws box around selected parts\nAdd parts in Search frame'
 	})
 	List = Search:CreateTextList({
-		Name = '部件',
+		Name = 'Parts',
 		Function = function()
 			if Search.Enabled then
 				Search:Toggle()
@@ -5402,7 +5381,7 @@ run(function()
 		end
 	})
 	Color = Search:CreateColorSlider({
-		Name = '颜色',
+		Name = 'Color',
 		Function = function(hue, sat, val)
 			for _, v in Reference do
 				v.Color3 = Color3.fromHSV(hue, sat, val)
@@ -5437,7 +5416,7 @@ run(function()
 	local infostroke
 	
 	SessionInfo = vape:CreateOverlay({
-		Name = '会话信息',
+		Name = 'Session Info',
 		Icon = getcustomasset('newvape/assets/new/textguiicon.png'),
 		Size = UDim2.fromOffset(16, 12),
 		Position = UDim2.fromOffset(12, 14),
@@ -5463,7 +5442,7 @@ run(function()
 					if vape.Libraries.sessioninfo then
 						local stuff = {''}
 						if Title.Enabled then
-							stuff[1] = TitleOffset.Enabled and '<b>会话信息</b>\n<font size="4"> </font>' or '<b>会话信息</b>'
+							stuff[1] = TitleOffset.Enabled and '<b>Session Info</b>\n<font size="4"> </font>' or '<b>Session Info</b>'
 						end
 	
 						for i, v in vape.Libraries.sessioninfo.Objects do
@@ -5501,19 +5480,19 @@ run(function()
 		end
 	})
 	FontOption = SessionInfo:CreateFont({
-		Name = '字体',
+		Name = 'Font',
 		Blacklist = 'Arial'
 	})
 	Hide = SessionInfo:CreateTextList({
-		Name = '黑名单',
-		Tooltip = '要隐藏的条目名称。',
+		Name = 'Blacklist',
+		Tooltip = 'Name of entry to hide.',
 		Icon = getcustomasset('newvape/assets/new/blockedicon.png'),
 		Tab = getcustomasset('newvape/assets/new/blockedtab.png'),
 		TabSize = UDim2.fromOffset(21, 16),
 		Color = Color3.fromRGB(250, 50, 56)
 	})
 	SessionInfo:CreateColorSlider({
-		Name = '背景颜色',
+		Name = 'Background Color',
 		DefaultValue = 0,
 		DefaultOpacity = 0.5,
 		Function = function(hue, sat, val, opacity)
@@ -5522,7 +5501,7 @@ run(function()
 		end
 	})
 	BorderColor = SessionInfo:CreateColorSlider({
-		Name = '边框颜色',
+		Name = 'Border Color',
 		Function = function(hue, sat, val, opacity)
 			infostroke.Color = Color3.fromHSV(hue, sat, val)
 			infostroke.Transparency = 1 - opacity
@@ -5531,13 +5510,13 @@ run(function()
 		Visible = false
 	})
 	TextSize = SessionInfo:CreateSlider({
-		Name = '文字大小',
+		Name = 'Text Size',
 		Min = 1,
 		Max = 30,
 		Default = 16
 	})
 	Title = SessionInfo:CreateToggle({
-		Name = '标题',
+		Name = 'Title',
 		Function = function(callback)
 			if TitleOffset.Object then
 				TitleOffset.Object.Visible = callback
@@ -5546,25 +5525,25 @@ run(function()
 		Default = true
 	})
 	TitleOffset = SessionInfo:CreateToggle({
-		Name = '偏移',
+		Name = 'Offset',
 		Default = true,
 		Darker = true
 	})
 	SessionInfo:CreateToggle({
-		Name = '边框',
+		Name = 'Border',
 		Function = function(callback)
 			infostroke.Enabled = callback
 			BorderColor.Object.Visible = callback
 		end
 	})
 	Custom = SessionInfo:CreateToggle({
-		Name = '添加自定义文本',
+		Name = 'Add custom text',
 		Function = function(enabled)
 			CustomBox.Object.Visible = enabled
 		end
 	})
 	CustomBox = SessionInfo:CreateTextBox({
-		Name = '自定义文本',
+		Name = 'Custom text',
 		Darker = true,
 		Visible = false
 	})
@@ -5616,7 +5595,7 @@ run(function()
 			}
 		end
 	}
-	vape.Libraries.sessioninfo:AddItem('游戏时间', os.clock(), function(value)
+	vape.Libraries.sessioninfo:AddItem('Time Played', os.clock(), function(value)
 		return os.date('!%X', math.floor(os.clock() - value))
 	end)
 end)
@@ -5705,7 +5684,7 @@ run(function()
 	end
 	
 	Tracers = vape.Categories.Render:CreateModule({
-		Name = '曳光弹',
+		Name = 'Tracers',
 		Function = function(callback)
 			if callback then
 				Tracers:Clean(entitylib.Events.EntityRemoved:Connect(Removed))
@@ -5731,7 +5710,7 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '在玩家身上渲染曳光弹效果。'
+		Tooltip = 'Renders tracers on players.'
 	})
 	Targets = Tracers:CreateTargets({
 		Players = true,
@@ -5743,8 +5722,8 @@ run(function()
 		end
 	})
 	StartPosition = Tracers:CreateDropdown({
-		Name = '起始位置',
-		List = {'中间', '底部', '鼠标'}, -- {'Middle', 'Bottom', 'Mouse'}
+		Name = 'Start Position',
+		List = {'Middle', 'Bottom', 'Mouse'},
 		Function = function()
 			if Tracers.Enabled then
 				Tracers:Toggle()
@@ -5753,8 +5732,8 @@ run(function()
 		end
 	})
 	EndPosition = Tracers:CreateDropdown({
-		Name = '结束位置',
-		List = {'头部', '躯干'}, -- {'Head', 'Torso'}
+		Name = 'End Position',
+		List = {'Head', 'Torso'},
 		Function = function()
 			if Tracers.Enabled then
 				Tracers:Toggle()
@@ -5763,7 +5742,7 @@ run(function()
 		end
 	})
 	Color = Tracers:CreateColorSlider({
-		Name = '玩家颜色',
+		Name = 'Player Color',
 		Function = function(hue, sat, val)
 			if Tracers.Enabled then
 				ColorFunc(hue, sat, val)
@@ -5782,7 +5761,7 @@ run(function()
 		Decimal = 10
 	})
 	DistanceColor = Tracers:CreateToggle({
-		Name = '根据距离变色',
+		Name = 'Color by distance',
 		Function = function()
 			if Tracers.Enabled then
 				Tracers:Toggle()
@@ -5791,13 +5770,13 @@ run(function()
 		end
 	})
 	Distance = Tracers:CreateToggle({
-		Name = '距离检查',
+		Name = 'Distance Check',
 		Function = function(callback)
 			DistanceLimit.Object.Visible = callback
 		end
 	})
 	DistanceLimit = Tracers:CreateTwoSlider({
-		Name = '玩家距离',
+		Name = 'Player Distance',
 		Min = 0,
 		Max = 256,
 		DefaultMin = 0,
@@ -5806,11 +5785,11 @@ run(function()
 		Visible = false
 	})
 	Behind = Tracers:CreateToggle({
-		Name = '背后',
+		Name = 'Behind',
 		Default = true
 	})
 	Teammates = Tracers:CreateToggle({
-		Name = '仅优先',
+		Name = 'Priority Only',
 		Function = function()
 			if Tracers.Enabled then
 				Tracers:Toggle()
@@ -5818,7 +5797,7 @@ run(function()
 			end
 		end,
 		Default = true,
-		Tooltip = '隐藏队友和非目标实体'
+		Tooltip = 'Hides teammates & non targetable entities'
 	})
 end)
 	
@@ -5833,7 +5812,7 @@ run(function()
 	WaypointFolder.Parent = vape.gui
 	
 	Waypoints = vape.Categories.Render:CreateModule({
-		Name = '路径点',
+		Name = 'Waypoints',
 		Function = function(callback)
 			if callback then
 				for _, v in List.ListEnabled do
@@ -5861,10 +5840,10 @@ run(function()
 				WaypointFolder:ClearAllChildren()
 			end
 		end,
-		Tooltip = '用视觉指示器标记某些地点'
+		Tooltip = 'Mark certain spots with a visual indicator'
 	})
 	FontOption = Waypoints:CreateFont({
-		Name = '字体',
+		Name = 'Font',
 		Blacklist = 'Arial',
 		Function = function()
 			if Waypoints.Enabled then
@@ -5874,8 +5853,8 @@ run(function()
 		end,
 	})
 	List = Waypoints:CreateTextList({
-		Name = '点',
-		Placeholder = 'x, y, z/名称',
+		Name = 'Points',
+		Placeholder = 'x, y, z/name',
 		Function = function()
 			if Waypoints.Enabled then
 				Waypoints:Toggle()
@@ -5884,16 +5863,16 @@ run(function()
 		end
 	})
 	Waypoints:CreateButton({
-		Name = '添加当前位置',
+		Name = 'Add current position',
 		Function = function()
 			if entitylib.isAlive then
 				local pos = entitylib.character.RootPart.Position // 1
-				List:ChangeValue(pos.X..','..pos.Y..','..pos.Z..'/路径点 '..(#List.List + 1))
+				List:ChangeValue(pos.X..','..pos.Y..','..pos.Z..'/Waypoint '..(#List.List + 1))
 			end
 		end
 	})
 	Color = Waypoints:CreateColorSlider({
-		Name = '颜色',
+		Name = 'Color',
 		Function = function(hue, sat, val)
 			for _, v in WaypointFolder:GetChildren() do
 				v.TextLabel.TextColor3 = Color3.fromHSV(hue, sat, val)
@@ -5901,7 +5880,7 @@ run(function()
 		end
 	})
 	Scale = Waypoints:CreateSlider({
-		Name = '缩放',
+		Name = 'Scale',
 		Function = function()
 			if Waypoints.Enabled then
 				Waypoints:Toggle()
@@ -5958,12 +5937,12 @@ run(function()
 				end
 			end))
 		else
-			notif('动画播放器', '加载动画失败 : '..(res or '无效的动画id'), 5, 'warning')
+			notif('AnimationPlayer', 'failed to load anim : '..(res or 'invalid animation id'), 5, 'warning')
 		end
 	end
 	
 	AnimationPlayer = vape.Categories.Utility:CreateModule({
-		Name = '动画播放器',
+		Name = 'AnimationPlayer',
 		Function = function(callback)
 			if callback then
 				animobject = Instance.new('Animation')
@@ -5983,11 +5962,11 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '以特定速度播放您选择的特定动画'
+		Tooltip = 'Plays a specific animation of your choosing at a certain speed'
 	})
 	IDBox = AnimationPlayer:CreateTextBox({
-		Name = '动画',
-		Placeholder = '动画 (仅数字)',
+		Name = 'Animation',
+		Placeholder = 'anim (num only)',
 		Function = function(enter)
 			if enter and AnimationPlayer.Enabled then
 				AnimationPlayer:Toggle()
@@ -6002,7 +5981,7 @@ run(function()
 		end
 	end
 	Priority = AnimationPlayer:CreateDropdown({
-		Name = '优先级',
+		Name = 'Priority',
 		List = prio,
 		Function = function(val)
 			if anim then
@@ -6011,7 +5990,7 @@ run(function()
 		end
 	})
 	Speed = AnimationPlayer:CreateSlider({
-		Name = '速度',
+		Name = 'Speed',
 		Function = function(val)
 			if anim then
 				anim:AdjustSpeed(val)
@@ -6027,7 +6006,7 @@ run(function()
 	local AntiRagdoll
 	
 	AntiRagdoll = vape.Categories.Utility:CreateModule({
-		Name = '防布娃娃',
+		Name = 'AntiRagdoll',
 		Function = function(callback)
 			if entitylib.isAlive then
 				entitylib.character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, not callback)
@@ -6039,7 +6018,7 @@ run(function()
 				end))
 			end
 		end,
-		Tooltip = '防止你被击倒进入布娃娃状态'
+		Tooltip = 'Prevents you from getting knocked down in a ragdoll state'
 	})
 end)
 	
@@ -6048,7 +6027,7 @@ run(function()
 	local Sort
 	
 	AutoRejoin = vape.Categories.Utility:CreateModule({
-		Name = '自动重连',
+		Name = 'AutoRejoin',
 		Function = function(callback)
 			if callback then
 				local check
@@ -6060,12 +6039,12 @@ run(function()
 				end))
 			end
 		end,
-		Tooltip = '如果你被断开连接/踢出，会自动重新加入一个新服务器'
+		Tooltip = 'Automatically rejoins into a new server if you get disconnected / kicked'
 	})
 	Sort = AutoRejoin:CreateDropdown({
-		Name = '排序',
-		List = {'降序', '升序'}, -- {'Descending', 'Ascending'}
-		Tooltip = '降序 - 优先选择满人服务器\n升序 - 优先选择空服务器'
+		Name = 'Sort',
+		List = {'Descending', 'Ascending'},
+		Tooltip = 'Descending - Prefers full servers\nAscending - Prefers empty servers'
 	})
 end)
 	
@@ -6077,7 +6056,7 @@ run(function()
 	local oldphys, oldsend
 	
 	Blink = vape.Categories.Utility:CreateModule({
-		Name = '闪烁',
+		Name = 'Blink',
 		Function = function(callback)
 			if callback then
 				local teleported
@@ -6109,29 +6088,29 @@ run(function()
 				oldphys, oldsend = nil, nil
 			end
 		end,
-		Tooltip = '在禁用前一直阻塞数据包。'
+		Tooltip = 'Chokes packets until disabled.'
 	})
 	Type = Blink:CreateDropdown({
-		Name = '类型',
-		List = {'仅移动', '所有'}, -- {'Movement Only', 'All'}
-		Tooltip = '仅移动 - 仅阻塞移动数据包\n所有 - 阻塞远程事件和移动数据包'
+		Name = 'Type',
+		List = {'Movement Only', 'All'},
+		Tooltip = 'Movement Only - Only chokes movement packets\nAll - Chokes remotes & movement'
 	})
 	AutoSend = Blink:CreateToggle({
-		Name = '自动发送',
+		Name = 'Auto send',
 		Function = function(callback)
 			AutoSendLength.Object.Visible = callback
 		end,
-		Tooltip = '按间隔自动发送数据包'
+		Tooltip = 'Automatically send packets in intervals'
 	})
 	AutoSendLength = Blink:CreateSlider({
-		Name = '发送阈值',
+		Name = 'Send threshold',
 		Min = 0,
 		Max = 1,
 		Decimal = 100,
 		Darker = true,
 		Visible = false,
 		Suffix = function(val)
-			return '秒'
+			return val == 1 and 'second' or 'seconds'
 		end
 	})
 end)
@@ -6145,13 +6124,13 @@ run(function()
 	local oldchat
 	
 	ChatSpammer = vape.Categories.Utility:CreateModule({
-		Name = '聊天刷屏',
+		Name = 'ChatSpammer',
 		Function = function(callback)
 			if callback then
 				if textChatService.ChatVersion == Enum.ChatVersion.TextChatService then
 					if Hide.Enabled and coreGui:FindFirstChild('ExperienceChat') then
 						ChatSpammer:Clean(coreGui.ExperienceChat:FindFirstChild('RCTScrollContentView', true).ChildAdded:Connect(function(msg)
-							if msg.Name:sub(1, 2) == '0-' and msg.ContentText == '发送下一条消息前必须等待。' then
+							if msg.Name:sub(1, 2) == '0-' and msg.ContentText == 'You must wait before sending another message.' then
 								msg.Visible = false
 							end
 						end))
@@ -6164,7 +6143,7 @@ run(function()
 						end)
 					end
 				else
-					notif('聊天刷屏', '不支持的聊天系统', 5, 'warning')
+					notif('ChatSpammer', 'unsupported chat', 5, 'warning')
 					ChatSpammer:Toggle()
 					return
 				end
@@ -6191,25 +6170,25 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '自动在聊天中输入内容'
+		Tooltip = 'Automatically types in chat'
 	})
-	Lines = ChatSpammer:CreateTextList({Name = '内容行'})
+	Lines = ChatSpammer:CreateTextList({Name = 'Lines'})
 	Mode = ChatSpammer:CreateDropdown({
-		Name = '模式',
-		List = {'随机', '顺序'} -- {'Random', 'Order'}
+		Name = 'Mode',
+		List = {'Random', 'Order'}
 	})
 	Delay = ChatSpammer:CreateSlider({
-		Name = '延迟',
+		Name = 'Delay',
 		Min = 0.1,
 		Max = 10,
 		Default = 1,
 		Decimal = 10,
 		Suffix = function(val)
-			return '秒'
+			return val == 1 and 'second' or 'seconds'
 		end
 	})
 	Hide = ChatSpammer:CreateToggle({
-		Name = '隐藏刷屏消息',
+		Name = 'Hide Flood Message',
 		Default = true,
 		Function = function()
 			if ChatSpammer.Enabled then
@@ -6233,7 +6212,7 @@ run(function()
 	end
 	
 	Disabler = vape.Categories.Utility:CreateModule({
-		Name = '反作弊禁用器',
+		Name = 'Disabler',
 		Function = function(callback)
 			if callback then
 				Disabler:Clean(entitylib.Events.LocalAdded:Connect(characterAdded))
@@ -6242,13 +6221,13 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '禁用对移动的GetPropertyChangedSignal检测'
+		Tooltip = 'Disables GetPropertyChangedSignal detections for movement'
 	})
 end)
 	
 run(function()
 	vape.Categories.Utility:CreateModule({
-		Name = '紧急关闭',
+		Name = 'Panic',
 		Function = function(callback)
 			if callback then
 				for _, v in vape.Modules do
@@ -6258,7 +6237,7 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '禁用所有当前启用的模块'
+		Tooltip = 'Disables all currently enabled modules'
 	})
 end)
 	
@@ -6266,10 +6245,10 @@ run(function()
 	local Rejoin
 	
 	Rejoin = vape.Categories.Utility:CreateModule({
-		Name = '重新加入',
+		Name = 'Rejoin',
 		Function = function(callback)
 			if callback then
-				notif('重新加入', '正在重新加入...', 5)
+				notif('Rejoin', 'Rejoining...', 5)
 				Rejoin:Toggle()
 				if playersService.NumPlayers > 1 then
 					teleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId)
@@ -6278,7 +6257,7 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '重新加入服务器'
+		Tooltip = 'Rejoins the server'
 	})
 end)
 	
@@ -6287,24 +6266,24 @@ run(function()
 	local Sort
 	
 	ServerHop = vape.Categories.Utility:CreateModule({
-		Name = '服务器跳跃',
+		Name = 'ServerHop',
 		Function = function(callback)
 			if callback then
 				ServerHop:Toggle()
 				serverHop(nil, Sort.Value)
 			end
 		end,
-		Tooltip = '传送到一个不同的服务器'
+		Tooltip = 'Teleports into a unique server'
 	})
 	Sort = ServerHop:CreateDropdown({
-		Name = '排序',
-		List = {'降序', '升序'}, -- {'Descending', 'Ascending'}
-		Tooltip = '降序 - 优先选择满人服务器\n升序 - 优先选择空服务器'
+		Name = 'Sort',
+		List = {'Descending', 'Ascending'},
+		Tooltip = 'Descending - Prefers full servers\nAscending - Prefers empty servers'
 	})
 	ServerHop:CreateButton({
-		Name = '重新加入上一个服务器',
+		Name = 'Rejoin Previous Server',
 		Function = function()
-			notif('服务器跳跃', shared.vapeserverhopprevious and '正在重新加入上一个服务器...' or '找不到上一个服务器', 5)
+			notif('ServerHop', shared.vapeserverhopprevious and 'Rejoining previous server...' or 'Cannot find previous server', 5)
 			if shared.vapeserverhopprevious then
 				teleportService:TeleportToPlaceInstance(game.PlaceId, shared.vapeserverhopprevious)
 			end
@@ -6349,16 +6328,16 @@ run(function()
 	
 		local user = table.find(Users.ListEnabled, tostring(plr.UserId))
 		if user or getRole(plr, tonumber(Group.Value) or 0) >= (tonumber(Role.Value) or 1) then
-			notif('管理员检测', '检测到管理员 ('..(user and '黑名单用户' or '管理员角色')..'): '..plr.Name, 60, 'alert')
-			whitelist.customtags[plr.Name] = {{text = '游戏管理员', color = Color3.new(1, 0, 0)}}
+			notif('StaffDetector', 'Staff Detected ('..(user and 'blacklisted_user' or 'staff_role')..'): '..plr.Name, 60, 'alert')
+			whitelist.customtags[plr.Name] = {{text = 'GAME STAFF', color = Color3.new(1, 0, 0)}}
 	
 			if Mode.Value == 'Uninject' then
 				task.spawn(function()
 					vape:Uninject()
 				end)
 				game:GetService('StarterGui'):SetCore('SendNotification', {
-					Title = '管理员检测',
-					Text = '检测到管理员\n'..plr.Name,
+					Title = 'StaffDetector',
+					Text = 'Staff Detected\n'..plr.Name,
 					Duration = 60,
 				})
 			elseif Mode.Value == 'ServerHop' then
@@ -6381,7 +6360,7 @@ run(function()
 	end
 	
 	StaffDetector = vape.Categories.Utility:CreateModule({
-		Name = '管理员检测',
+		Name = 'StaffDetector',
 		Function = function(callback)
 			if callback then
 				if Group.Value == '' or Role.Value == '' then
@@ -6403,7 +6382,7 @@ run(function()
 						end
 	
 						if placeinfo.Creator.CreatorType ~= 'Group' then
-							notif('管理员检测', '自动设置失败 (未检测到群组)', 60, 'warning')
+							notif('StaffDetector', 'Automatic Setup Failed (no group detected)', 60, 'warning')
 							return
 						end
 					end
@@ -6423,11 +6402,11 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '检测游戏内具有管理员权限的游戏内人员'
+		Tooltip = 'Detects people with a staff rank ingame'
 	})
 	Mode = StaffDetector:CreateDropdown({
-		Name = '模式',
-		List = {'卸载', '服务器跳跃', '配置文件', '自动配置', '通知'}, -- {'Uninject', 'ServerHop', 'Profile', 'AutoConfig', 'Notify'}
+		Name = 'Mode',
+		List = {'Uninject', 'ServerHop', 'Profile', 'AutoConfig', 'Notify'},
 		Function = function(val)
 			if Profile.Object then
 				Profile.Object.Visible = val == 'Profile'
@@ -6435,22 +6414,22 @@ run(function()
 		end
 	})
 	Profile = StaffDetector:CreateTextBox({
-		Name = '配置文件',
+		Name = 'Profile',
 		Default = 'default',
 		Darker = true,
 		Visible = false
 	})
 	Users = StaffDetector:CreateTextList({
-		Name = '用户',
-		Placeholder = '玩家 (用户ID)'
+		Name = 'Users',
+		Placeholder = 'player (userid)'
 	})
 	Group = StaffDetector:CreateTextBox({
-		Name = '群组',
-		Placeholder = '群组ID'
+		Name = 'Group',
+		Placeholder = 'Group Id'
 	})
 	Role = StaffDetector:CreateTextBox({
-		Name = '角色',
-		Placeholder = '角色等级'
+		Name = 'Role',
+		Placeholder = 'Role Rank'
 	})
 end)
 	
@@ -6458,7 +6437,7 @@ run(function()
 	local connections = {}
 	
 	vape.Categories.World:CreateModule({
-		Name = '防挂机',
+		Name = 'Anti-AFK',
 		Function = function(callback)
 			if callback then
 				for _, v in getconnections(lplr.Idled) do
@@ -6472,7 +6451,7 @@ run(function()
 				table.clear(connections)
 			end
 		end,
-		Tooltip = '让你能留在游戏中而不会被踢出'
+		Tooltip = 'Lets you stay ingame without getting kicked'
 	})
 end)
 	
@@ -6482,7 +6461,7 @@ run(function()
 	local randomkey, module, old = httpService:GenerateGUID(false)
 	
 	Freecam = vape.Categories.World:CreateModule({
-		Name = '自由视角',
+		Name = 'Freecam',
 		Function = function(callback)
 			if callback then
 				repeat
@@ -6535,15 +6514,15 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '让你能自由飞行和穿墙\n而不会在服务器端移动你的玩家。'
+		Tooltip = 'Lets you fly and clip through walls freely\nwithout moving your player server-sided.'
 	})
 	Value = Freecam:CreateSlider({
-		Name = '速度',
+		Name = 'Speed',
 		Min = 1,
 		Max = 150,
 		Default = 50,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 end)
@@ -6555,7 +6534,7 @@ run(function()
 	local changed, old = false
 	
 	Gravity = vape.Categories.World:CreateModule({
-		Name = '重力',
+		Name = 'Gravity',
 		Function = function(callback)
 			if callback then
 				if Mode.Value == 'Workspace' then
@@ -6587,15 +6566,15 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '改变你的下落速度'
+		Tooltip = 'Changes the rate you fall'
 	})
 	Mode = Gravity:CreateDropdown({
-		Name = '模式',
-		List = {'工作区', '速度', '冲量'}, -- {'Workspace', 'Velocity', 'Impulse'}
-		Tooltip = '工作区 - 调整整个游戏的重力\n速度 - 调整本地玩家的重力\n冲量 - 与速度类似，但使用力'
+		Name = 'Mode',
+		List = {'Workspace', 'Velocity', 'Impulse'},
+		Tooltip = 'Workspace - Adjusts the gravity for the entire game\nVelocity - Adjusts the local players gravity\nImpulse - Same as velocity while using forces instead'
 	})
 	Value = Gravity:CreateSlider({
-		Name = '重力值',
+		Name = 'Gravity',
 		Min = 0,
 		Max = 192,
 		Function = function(val)
@@ -6613,7 +6592,7 @@ run(function()
 	local Parkour
 	
 	Parkour = vape.Categories.World:CreateModule({
-		Name = '跑酷',
+		Name = 'Parkour',
 		Function = function(callback)
 			if callback then 
 				local oldfloor
@@ -6628,7 +6607,7 @@ run(function()
 				end))
 			end
 		end,
-		Tooltip = '到达边缘后自动跳跃'
+		Tooltip = 'Automatically jumps after reaching the edge'
 	})
 end)
 	
@@ -6638,7 +6617,7 @@ run(function()
 	local module, old
 	
 	vape.Categories.World:CreateModule({
-		Name = '安全行走',
+		Name = 'SafeWalk',
 		Function = function(callback)
 			if callback then
 				if not module then
@@ -6671,7 +6650,7 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '防止你从部件边缘走下去'
+		Tooltip = 'Prevents you from walking off the edge of parts'
 	})
 end)
 	
@@ -6688,7 +6667,7 @@ run(function()
 	end
 	
 	Xray = vape.Categories.World:CreateModule({
-		Name = 'X光',
+		Name = 'Xray',
 		Function = function(callback)
 			if callback then
 				Xray:Clean(workspace.DescendantAdded:Connect(modifyPart))
@@ -6702,10 +6681,10 @@ run(function()
 				table.clear(modified)
 			end
 		end,
-		Tooltip = '透过墙壁渲染白名单中的部件。'
+		Tooltip = 'Renders whitelisted parts through walls.'
 	})
 	List = Xray:CreateTextList({
-		Name = '部件',
+		Name = 'Part',
 		Function = function()
 			if Xray.Enabled then
 				Xray:Toggle()
@@ -6755,7 +6734,7 @@ run(function()
 	end
 	
 	MurderMystery = vape.Categories.Minigames:CreateModule({
-		Name = '谁是凶手',
+		Name = 'MurderMystery',
 		Function = function(callback)
 			if callback then
 				oldtargetable, oldgetcolor = entitylib.targetCheck, entitylib.getEntityColor
@@ -6783,7 +6762,7 @@ run(function()
 				entitylib.refresh()
 			end
 		end,
-		Tooltip = '基于装备的Roblox工具，自动进行“谁是凶手”模式下的组队。'
+		Tooltip = 'Automatic murder mystery teaming based on equipped roblox tools.'
 	})
 end)
 	
@@ -6849,7 +6828,7 @@ run(function()
 	end
 	
 	Atmosphere = vape.Legit:CreateModule({
-		Name = '环境',
+		Name = 'Atmosphere',
 		Function = function(callback)
 			if callback then
 				for _, v in lightingService:GetChildren() do
@@ -6884,7 +6863,7 @@ run(function()
 				table.clear(oldobjects)
 			end
 		end,
-		Tooltip = '自定义光照对象'
+		Tooltip = 'Custom lighting objects'
 	})
 	for i, v in apidump do
 		Toggles[i] = {Objects = {}}
@@ -6942,7 +6921,7 @@ run(function()
 	local trail, point, point2
 	
 	Breadcrumbs = vape.Legit:CreateModule({
-		Name = '路径痕迹',
+		Name = 'Breadcrumbs',
 		Function = function(callback)
 			if callback then
 				point = Instance.new('Attachment')
@@ -6977,11 +6956,11 @@ run(function()
 				point2 = nil
 			end
 		end,
-		Tooltip = '在你的角色后面显示一条轨迹'
+		Tooltip = 'Shows a trail behind your character'
 	})
 	Texture = Breadcrumbs:CreateTextBox({
-		Name = '纹理',
-		Placeholder = '纹理ID',
+		Name = 'Texture',
+		Placeholder = 'Texture Id',
 		Function = function(enter)
 			if enter and trail then
 				trail.Texture = Texture.Value == '' and 'http://www.roblox.com/asset/?id=14166981368' or Texture.Value
@@ -6989,7 +6968,7 @@ run(function()
 		end
 	})
 	FadeIn = Breadcrumbs:CreateColorSlider({
-		Name = '淡入',
+		Name = 'Fade In',
 		Function = function(hue, sat, val)
 			if trail then
 				trail.Color = ColorSequence.new(Color3.fromHSV(hue, sat, val), Color3.fromHSV(FadeOut.Hue, FadeOut.Sat, FadeOut.Value))
@@ -6997,7 +6976,7 @@ run(function()
 		end
 	})
 	FadeOut = Breadcrumbs:CreateColorSlider({
-		Name = '淡出',
+		Name = 'Fade Out',
 		Function = function(hue, sat, val)
 			if trail then
 				trail.Color = ColorSequence.new(Color3.fromHSV(FadeIn.Hue, FadeIn.Sat, FadeIn.Value), Color3.fromHSV(hue, sat, val))
@@ -7005,7 +6984,7 @@ run(function()
 		end
 	})
 	Lifetime = Breadcrumbs:CreateSlider({
-		Name = '持续时间',
+		Name = 'Lifetime',
 		Min = 1,
 		Max = 5,
 		Default = 3,
@@ -7016,11 +6995,11 @@ run(function()
 			end
 		end,
 		Suffix = function(val)
-			return '秒'
+			return val == 1 and 'second' or 'seconds'
 		end
 	})
 	Thickness = Breadcrumbs:CreateSlider({
-		Name = '厚度',
+		Name = 'Thickness',
 		Min = 0,
 		Max = 2,
 		Default = 0.1,
@@ -7034,7 +7013,7 @@ run(function()
 			end
 		end,
 		Suffix = function(val)
-			return '单位'
+			return val == 1 and 'stud' or 'studs'
 		end
 	})
 end)
@@ -7059,7 +7038,7 @@ run(function()
 	end
 	
 	Cape = vape.Legit:CreateModule({
-		Name = '披风',
+		Name = 'Cape',
 		Function = function(callback)
 			if callback then
 				part = Instance.new('Part')
@@ -7112,10 +7091,10 @@ run(function()
 				motor = nil
 			end
 		end,
-		Tooltip = '为你的角色添加一个披风'
+		Tooltip = 'Add\'s a cape to your character'
 	})
 	Texture = Cape:CreateTextBox({
-		Name = '纹理'
+		Name = 'Texture'
 	})
 end)
 	
@@ -7126,7 +7105,7 @@ run(function()
 	local hat
 	
 	ChinaHat = vape.Legit:CreateModule({
-		Name = '斗笠',
+		Name = 'China Hat',
 		Function = function(callback)
 			if callback then
 				if vape.ThreadFix then
@@ -7170,7 +7149,7 @@ run(function()
 				hat = nil
 			end
 		end,
-		Tooltip = '在你的角色头上戴上一个斗笠 (感谢 mastadawn)'
+		Tooltip = 'Puts a china hat on your character (ty mastadawn)'
 	})
 	local materials = {'ForceField'}
 	for _, v in Enum.Material:GetEnumItems() do
@@ -7179,7 +7158,7 @@ run(function()
 		end
 	end
 	Material = ChinaHat:CreateDropdown({
-		Name = '材质',
+		Name = 'Material',
 		List = materials,
 		Function = function(val)
 			if hat then
@@ -7188,7 +7167,7 @@ run(function()
 		end
 	})
 	Color = ChinaHat:CreateColorSlider({
-		Name = '帽子颜色',
+		Name = 'Hat Color',
 		DefaultOpacity = 0.7,
 		Function = function(hue, sat, val, opacity)
 			if hat then
@@ -7205,7 +7184,7 @@ run(function()
 	local label
 	
 	Clock = vape.Legit:CreateModule({
-		Name = '时钟',
+		Name = 'Clock',
 		Function = function(callback)
 			if callback then
 				repeat
@@ -7215,17 +7194,17 @@ run(function()
 			end
 		end,
 		Size = UDim2.fromOffset(100, 41),
-		Tooltip = '显示当前本地时间'
+		Tooltip = 'Shows the current local time'
 	})
 	Clock:CreateFont({
-		Name = '字体',
+		Name = 'Font',
 		Blacklist = 'Gotham',
 		Function = function(val)
 			label.FontFace = val
 		end
 	})
 	Clock:CreateColorSlider({
-		Name = '颜色',
+		Name = 'Color',
 		DefaultValue = 0,
 		DefaultOpacity = 0.5,
 		Function = function(hue, sat, val, opacity)
@@ -7234,7 +7213,7 @@ run(function()
 		end
 	})
 	TwentyFourHour = Clock:CreateToggle({
-		Name = '24小时制'
+		Name = '24 Hour Clock'
 	})
 	label = Instance.new('TextLabel')
 	label.Size = UDim2.new(0, 100, 0, 41)
@@ -7382,13 +7361,13 @@ run(function()
 					end
 				end
 			else
-				notif('伪装', '那不是一个动画包', 5, 'warning')
+				notif('Disguise', 'that\'s not an animation pack', 5, 'warning')
 			end
 		end
 	end
 	
 	Disguise = vape.Legit:CreateModule({
-		Name = '伪装',
+		Name = 'Disguise',
 		Function = function(callback)
 			if callback then
 				Disguise:Clean(entitylib.Events.LocalAdded:Connect(characterAdded))
@@ -7397,11 +7376,11 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '将你的角色或动画更改为特定的ID（仅限动画包或用户ID）'
+		Tooltip = 'Changes your character or animation to a specific ID (animation packs or userid\'s only)'
 	})
 	Mode = Disguise:CreateDropdown({
-		Name = '模式',
-		List = {'角色', '动画'}, -- {'Character', 'Animation'}
+		Name = 'Mode',
+		List = {'Character', 'Animation'},
 		Function = function()
 			if Disguise.Enabled then
 				Disguise:Toggle()
@@ -7410,8 +7389,8 @@ run(function()
 		end
 	})
 	IDBox = Disguise:CreateTextBox({
-		Name = '伪装',
-		Placeholder = '伪装用户ID',
+		Name = 'Disguise',
+		Placeholder = 'Disguise User Id',
 		Function = function()
 			if Disguise.Enabled then
 				Disguise:Toggle()
@@ -7427,7 +7406,7 @@ run(function()
 	local oldfov
 	
 	FOV = vape.Legit:CreateModule({
-		Name = '视野',
+		Name = 'FOV',
 		Function = function(callback)
 			if callback then
 				oldfov = gameCamera.FieldOfView
@@ -7439,10 +7418,10 @@ run(function()
 				gameCamera.FieldOfView = oldfov
 			end
 		end,
-		Tooltip = '调整相机视野'
+		Tooltip = 'Adjusts camera vision'
 	})
 	Value = FOV:CreateSlider({
-		Name = '视野',
+		Name = 'FOV',
 		Min = 30,
 		Max = 120
 	})
@@ -7450,14 +7429,14 @@ end)
 	
 run(function()
 	--[[
-		获取当前帧率的精确计数
-		来源: https://devforum.roblox.com/t/get-client-FPS-trough-a-script/282631
+		Grabbing an accurate count of the current framerate
+		Source: https://devforum.roblox.com/t/get-client-FPS-trough-a-script/282631
 	]]
 	local FPS
 	local label
 	
 	FPS = vape.Legit:CreateModule({
-		Name = '帧率',
+		Name = 'FPS',
 		Function = function(callback)
 			if callback then
 				local frames = {}
@@ -7477,17 +7456,17 @@ run(function()
 			end
 		end,
 		Size = UDim2.fromOffset(100, 41),
-		Tooltip = '显示当前帧率'
+		Tooltip = 'Shows the current framerate'
 	})
 	FPS:CreateFont({
-		Name = '字体',
+		Name = 'Font',
 		Blacklist = 'Gotham',
 		Function = function(val)
 			label.FontFace = val
 		end
 	})
 	FPS:CreateColorSlider({
-		Name = '颜色',
+		Name = 'Color',
 		DefaultValue = 0,
 		DefaultOpacity = 0.5,
 		Function = function(hue, sat, val, opacity)
@@ -7545,7 +7524,7 @@ run(function()
 	end
 	
 	Keystrokes = vape.Legit:CreateModule({
-		Name = '按键显示',
+		Name = 'Keystrokes',
 		Function = function(callback)
 			if callback then
 				createKeystroke(Enum.KeyCode.W, UDim2.new(0, 38, 0, 0), UDim2.new(0, 6, 0, 5), Style.Value == 'Arrow' and '↑' or nil)
@@ -7601,15 +7580,15 @@ run(function()
 			end
 		end,
 		Size = UDim2.fromOffset(110, 176),
-		Tooltip = '在屏幕上显示移动按键'
+		Tooltip = 'Shows movement keys onscreen'
 	})
 	holder = Instance.new('Frame')
 	holder.Size = UDim2.fromScale(1, 1)
 	holder.BackgroundTransparency = 1
 	holder.Parent = Keystrokes.Children
 	Style = Keystrokes:CreateDropdown({
-		Name = '按键样式',
-		List = {'键盘', '箭头'}, -- {'Keyboard', 'Arrow'}
+		Name = 'Key Style',
+		List = {'Keyboard', 'Arrow'},
 		Function = function()
 			if Keystrokes.Enabled then
 				Keystrokes:Toggle()
@@ -7618,7 +7597,7 @@ run(function()
 		end
 	})
 	Color = Keystrokes:CreateColorSlider({
-		Name = '颜色',
+		Name = 'Color',
 		DefaultValue = 0,
 		DefaultOpacity = 0.5,
 		Function = function(hue, sat, val, opacity)
@@ -7631,7 +7610,7 @@ run(function()
 		end
 	})
 	Keystrokes:CreateToggle({
-		Name = '显示空格键',
+		Name = 'Show Spacebar',
 		Function = function(callback)
 			Keystrokes.Children.Size = UDim2.fromOffset(110, callback and 107 or 78)
 			if callback then
@@ -7650,7 +7629,7 @@ run(function()
 	local label
 	
 	Memory = vape.Legit:CreateModule({
-		Name = '内存',
+		Name = 'Memory',
 		Function = function(callback)
 			if callback then
 				repeat
@@ -7660,17 +7639,17 @@ run(function()
 			end
 		end,
 		Size = UDim2.fromOffset(100, 41),
-		Tooltip = '一个显示Roblox当前使用内存的标签'
+		Tooltip = 'A label showing the memory currently used by roblox'
 	})
 	Memory:CreateFont({
-		Name = '字体',
+		Name = 'Font',
 		Blacklist = 'Gotham',
 		Function = function(val)
 			label.FontFace = val
 		end
 	})
 	Memory:CreateColorSlider({
-		Name = '颜色',
+		Name = 'Color',
 		DefaultValue = 0,
 		DefaultOpacity = 0.5,
 		Function = function(hue, sat, val, opacity)
@@ -7697,7 +7676,7 @@ run(function()
 	local label
 	
 	Ping = vape.Legit:CreateModule({
-		Name = '延迟',
+		Name = 'Ping',
 		Function = function(callback)
 			if callback then
 				repeat
@@ -7707,17 +7686,17 @@ run(function()
 			end
 		end,
 		Size = UDim2.fromOffset(100, 41),
-		Tooltip = '显示当前到Roblox服务器的连接速度'
+		Tooltip = 'Shows the current connection speed to the roblox server'
 	})
 	Ping:CreateFont({
-		Name = '字体',
+		Name = 'Font',
 		Blacklist = 'Gotham',
 		Function = function(val)
 			label.FontFace = val
 		end
 	})
 	Ping:CreateColorSlider({
-		Name = '颜色',
+		Name = 'Color',
 		DefaultValue = 0,
 		DefaultOpacity = 0.5,
 		Function = function(hue, sat, val, opacity)
@@ -7756,7 +7735,7 @@ run(function()
 		end
 	
 		if #list <= 0 then
-			notif('歌曲节拍', '没有歌曲', 10)
+			notif('SongBeats', 'no songs', 10)
 			SongBeats:Toggle()
 			return
 		end
@@ -7772,7 +7751,7 @@ run(function()
 	
 		local split = chosensong:split('/')
 		if not isfile(split[1]) then
-			notif('歌曲节拍', '缺少歌曲 ('..split[1]..')', 10)
+			notif('SongBeats', 'Missing song ('..split[1]..')', 10)
 			SongBeats:Toggle()
 			return
 		end
@@ -7787,7 +7766,7 @@ run(function()
 	end
 	
 	SongBeats = vape.Legit:CreateModule({
-		Name = '歌曲节拍',
+		Name = 'Song Beats',
 		Function = function(callback)
 			if callback then
 				songobj = Instance.new('Sound')
@@ -7822,14 +7801,14 @@ run(function()
 				table.clear(alreadypicked)
 			end
 		end,
-		Tooltip = '内置MP3播放器'
+		Tooltip = 'Built in mp3 player'
 	})
 	List = SongBeats:CreateTextList({
-		Name = '歌曲',
-		Placeholder = '文件路径/bpm/开始时间'
+		Name = 'Songs',
+		Placeholder = 'filepath/bpm/start'
 	})
 	FOV = SongBeats:CreateToggle({
-		Name = '节拍视野',
+		Name = 'Beat FOV',
 		Function = function(callback)
 			if FOVValue.Object then
 				FOVValue.Object.Visible = callback
@@ -7842,14 +7821,14 @@ run(function()
 		Default = true
 	})
 	FOVValue = SongBeats:CreateSlider({
-		Name = '调整值',
+		Name = 'Adjustment',
 		Min = 1,
 		Max = 30,
 		Default = 5,
 		Darker = true
 	})
 	Volume = SongBeats:CreateSlider({
-		Name = '音量',
+		Name = 'Volume',
 		Function = function(val)
 			if songobj then
 				songobj.Volume = val / 100
@@ -7867,7 +7846,7 @@ run(function()
 	local label
 	
 	Speedmeter = vape.Legit:CreateModule({
-		Name = '速度计',
+		Name = 'Speedmeter',
 		Function = function(callback)
 			if callback then
 				repeat
@@ -7879,17 +7858,17 @@ run(function()
 			end
 		end,
 		Size = UDim2.fromOffset(100, 41),
-		Tooltip = '一个以单位/秒显示平均速度的标签'
+		Tooltip = 'A label showing the average velocity in studs'
 	})
 	Speedmeter:CreateFont({
-		Name = '字体',
+		Name = 'Font',
 		Blacklist = 'Gotham',
 		Function = function(val)
 			label.FontFace = val
 		end
 	})
 	Speedmeter:CreateColorSlider({
-		Name = '颜色',
+		Name = 'Color',
 		DefaultValue = 0,
 		DefaultOpacity = 0.5,
 		Function = function(hue, sat, val, opacity)
@@ -7917,7 +7896,7 @@ run(function()
 	local old
 	
 	TimeChanger = vape.Legit:CreateModule({
-		Name = '时间更改',
+		Name = 'Time Changer',
 		Function = function(callback)
 			if callback then
 				old = lightingService.TimeOfDay
@@ -7927,10 +7906,10 @@ run(function()
 				old = nil
 			end
 		end,
-		Tooltip = '改变当前世界的时间'
+		Tooltip = 'Change the time of the current world'
 	})
 	Value = TimeChanger:CreateSlider({
-		Name = '时间',
+		Name = 'Time',
 		Min = 0,
 		Max = 24,
 		Default = 12,
@@ -7942,3 +7921,4 @@ run(function()
 	})
 	
 end)
+	
