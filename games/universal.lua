@@ -6423,4 +6423,1522 @@ run(function()
 				end
 			end
 		end,
-		Tooltip = '检测游戏内具有
+		Tooltip = '检测游戏内具有管理员权限的游戏内人员'
+	})
+	Mode = StaffDetector:CreateDropdown({
+		Name = '模式',
+		List = {'卸载', '服务器跳跃', '配置文件', '自动配置', '通知'}, -- {'Uninject', 'ServerHop', 'Profile', 'AutoConfig', 'Notify'}
+		Function = function(val)
+			if Profile.Object then
+				Profile.Object.Visible = val == 'Profile'
+			end
+		end
+	})
+	Profile = StaffDetector:CreateTextBox({
+		Name = '配置文件',
+		Default = 'default',
+		Darker = true,
+		Visible = false
+	})
+	Users = StaffDetector:CreateTextList({
+		Name = '用户',
+		Placeholder = '玩家 (用户ID)'
+	})
+	Group = StaffDetector:CreateTextBox({
+		Name = '群组',
+		Placeholder = '群组ID'
+	})
+	Role = StaffDetector:CreateTextBox({
+		Name = '角色',
+		Placeholder = '角色等级'
+	})
+end)
+	
+run(function()
+	local connections = {}
+	
+	vape.Categories.World:CreateModule({
+		Name = '防挂机',
+		Function = function(callback)
+			if callback then
+				for _, v in getconnections(lplr.Idled) do
+					table.insert(connections, v)
+					v:Disable()
+				end
+			else
+				for _, v in connections do
+					v:Enable()
+				end
+				table.clear(connections)
+			end
+		end,
+		Tooltip = '让你能留在游戏中而不会被踢出'
+	})
+end)
+	
+run(function()
+	local Freecam
+	local Value
+	local randomkey, module, old = httpService:GenerateGUID(false)
+	
+	Freecam = vape.Categories.World:CreateModule({
+		Name = '自由视角',
+		Function = function(callback)
+			if callback then
+				repeat
+					task.wait(0.1)
+					for _, v in getconnections(gameCamera:GetPropertyChangedSignal('CameraType')) do
+						if v.Function then
+							module = debug.getupvalue(v.Function, 1)
+						end
+					end
+				until module or not Freecam.Enabled
+	
+				if module and module.activeCameraController and Freecam.Enabled then
+					old = module.activeCameraController.GetSubjectPosition
+					local camPos = old(module.activeCameraController) or Vector3.zero
+					module.activeCameraController.GetSubjectPosition = function()
+						return camPos
+					end
+	
+					Freecam:Clean(runService.PreSimulation:Connect(function(dt)
+						if not inputService:GetFocusedTextBox() then
+							local forward = (inputService:IsKeyDown(Enum.KeyCode.W) and -1 or 0) + (inputService:IsKeyDown(Enum.KeyCode.S) and 1 or 0)
+							local side = (inputService:IsKeyDown(Enum.KeyCode.A) and -1 or 0) + (inputService:IsKeyDown(Enum.KeyCode.D) and 1 or 0)
+							local up = (inputService:IsKeyDown(Enum.KeyCode.Q) and -1 or 0) + (inputService:IsKeyDown(Enum.KeyCode.E) and 1 or 0)
+							dt = dt * (inputService:IsKeyDown(Enum.KeyCode.LeftShift) and 0.25 or 1)
+							camPos = (CFrame.lookAlong(camPos, gameCamera.CFrame.LookVector) * CFrame.new(Vector3.new(side, up, forward) * (Value.Value * dt))).Position
+						end
+					end))
+	
+					contextService:BindActionAtPriority('FreecamKeyboard'..randomkey, function()
+						return Enum.ContextActionResult.Sink
+					end, false, Enum.ContextActionPriority.High.Value,
+						Enum.KeyCode.W,
+						Enum.KeyCode.A,
+						Enum.KeyCode.S,
+						Enum.KeyCode.D,
+						Enum.KeyCode.E,
+						Enum.KeyCode.Q,
+						Enum.KeyCode.Up,
+						Enum.KeyCode.Down
+					)
+				end
+			else
+				pcall(function()
+					contextService:UnbindAction('FreecamKeyboard'..randomkey)
+				end)
+				if module and old then
+					module.activeCameraController.GetSubjectPosition = old
+					module = nil
+					old = nil
+				end
+			end
+		end,
+		Tooltip = '让你能自由飞行和穿墙\n而不会在服务器端移动你的玩家。'
+	})
+	Value = Freecam:CreateSlider({
+		Name = '速度',
+		Min = 1,
+		Max = 150,
+		Default = 50,
+		Suffix = function(val)
+			return '单位'
+		end
+	})
+end)
+	
+run(function()
+	local Gravity
+	local Mode
+	local Value
+	local changed, old = false
+	
+	Gravity = vape.Categories.World:CreateModule({
+		Name = '重力',
+		Function = function(callback)
+			if callback then
+				if Mode.Value == 'Workspace' then
+					old = workspace.Gravity
+					workspace.Gravity = Value.Value
+					Gravity:Clean(workspace:GetPropertyChangedSignal('Gravity'):Connect(function()
+						if changed then return end
+						changed = true
+						old = workspace.Gravity
+						workspace.Gravity = Value.Value
+						changed = false
+					end))
+				else
+					Gravity:Clean(runService.PreSimulation:Connect(function(dt)
+						if entitylib.isAlive and entitylib.character.Humanoid.FloorMaterial == Enum.Material.Air then
+							local root = entitylib.character.RootPart
+							if Mode.Value == 'Impulse' then
+								root:ApplyImpulse(Vector3.new(0, dt * (workspace.Gravity - Value.Value), 0) * root.AssemblyMass)
+							else
+								root.AssemblyLinearVelocity += Vector3.new(0, dt * (workspace.Gravity - Value.Value), 0)
+							end
+						end
+					end))
+				end
+			else
+				if old then
+					workspace.Gravity = old
+					old = nil
+				end
+			end
+		end,
+		Tooltip = '改变你的下落速度'
+	})
+	Mode = Gravity:CreateDropdown({
+		Name = '模式',
+		List = {'工作区', '速度', '冲量'}, -- {'Workspace', 'Velocity', 'Impulse'}
+		Tooltip = '工作区 - 调整整个游戏的重力\n速度 - 调整本地玩家的重力\n冲量 - 与速度类似，但使用力'
+	})
+	Value = Gravity:CreateSlider({
+		Name = '重力值',
+		Min = 0,
+		Max = 192,
+		Function = function(val)
+			if Gravity.Enabled and Mode.Value == 'Workspace' then
+				changed = true
+				workspace.Gravity = val
+				changed = false
+			end
+		end,
+		Default = 192
+	})
+end)
+	
+run(function()
+	local Parkour
+	
+	Parkour = vape.Categories.World:CreateModule({
+		Name = '跑酷',
+		Function = function(callback)
+			if callback then 
+				local oldfloor
+				Parkour:Clean(runService.RenderStepped:Connect(function()
+					if entitylib.isAlive then 
+						local material = entitylib.character.Humanoid.FloorMaterial
+						if material == Enum.Material.Air and oldfloor ~= Enum.Material.Air then 
+							entitylib.character.Humanoid.Jump = true
+						end
+						oldfloor = material
+					end
+				end))
+			end
+		end,
+		Tooltip = '到达边缘后自动跳跃'
+	})
+end)
+	
+run(function()
+	local rayCheck = RaycastParams.new()
+	rayCheck.RespectCanCollide = true
+	local module, old
+	
+	vape.Categories.World:CreateModule({
+		Name = '安全行走',
+		Function = function(callback)
+			if callback then
+				if not module then
+					local suc = pcall(function() 
+						module = require(lplr.PlayerScripts.PlayerModule).controls 
+					end)
+					if not suc then module = {} end
+				end
+				
+				old = module.moveFunction
+				module.moveFunction = function(self, vec, face)
+					if entitylib.isAlive then
+						rayCheck.FilterDescendantsInstances = {lplr.Character, gameCamera}
+						local root = entitylib.character.RootPart
+						local movedir = root.Position + vec
+						local ray = workspace:Raycast(movedir, Vector3.new(0, -15, 0), rayCheck)
+						if not ray then
+							local check = workspace:Blockcast(root.CFrame, Vector3.new(3, 1, 3), Vector3.new(0, -(entitylib.character.HipHeight + 1), 0), rayCheck)
+							if check then
+								vec = (check.Instance:GetClosestPointOnSurface(movedir) - root.Position) * Vector3.new(1, 0, 1)
+							end
+						end
+					end
+	
+					return old(self, vec, face)
+				end
+			else
+				if module and old then
+					module.moveFunction = old
+				end
+			end
+		end,
+		Tooltip = '防止你从部件边缘走下去'
+	})
+end)
+	
+run(function()
+	local Xray
+	local List
+	local modified = {}
+	
+	local function modifyPart(v)
+		if v:IsA('BasePart') and not table.find(List.ListEnabled, v.Name) then
+			modified[v] = true
+			v.LocalTransparencyModifier = 0.5
+		end
+	end
+	
+	Xray = vape.Categories.World:CreateModule({
+		Name = 'X光',
+		Function = function(callback)
+			if callback then
+				Xray:Clean(workspace.DescendantAdded:Connect(modifyPart))
+				for _, v in workspace:GetDescendants() do
+					modifyPart(v)
+				end
+			else
+				for i in modified do
+					i.LocalTransparencyModifier = 0
+				end
+				table.clear(modified)
+			end
+		end,
+		Tooltip = '透过墙壁渲染白名单中的部件。'
+	})
+	List = Xray:CreateTextList({
+		Name = '部件',
+		Function = function()
+			if Xray.Enabled then
+				Xray:Toggle()
+				Xray:Toggle()
+			end
+		end
+	})
+end)
+	
+run(function()
+	local MurderMystery
+	local murderer, sheriff, oldtargetable, oldgetcolor
+	
+	local function itemAdded(v, plr)
+		if v:IsA('Tool') then
+			local check = v:FindFirstChild('IsGun') and 'sheriff' or v:FindFirstChild('KnifeServer') and 'murderer' or nil
+			check = check or v.Name:lower():find('knife') and 'murderer' or v.Name:lower():find('gun') and 'sheriff' or nil
+			if check == 'murderer' and plr ~= murderer then
+				murderer = plr
+				if plr.Character then
+					entitylib.refresh()
+				end
+			elseif check == 'sheriff' and plr ~= sheriff then
+				sheriff = plr
+				if plr.Character then
+					entitylib.refresh()
+				end
+			end
+		end
+	end
+	
+	local function playerAdded(plr)
+		MurderMystery:Clean(plr.DescendantAdded:Connect(function(v)
+			itemAdded(v, plr)
+		end))
+		local pack = plr:FindFirstChildWhichIsA('Backpack')
+		if pack then
+			for _, v in pack:GetChildren() do
+				itemAdded(v, plr)
+			end
+		end
+		if plr.Character then
+			for _, v in plr.Character:GetChildren() do
+				itemAdded(v, plr)
+			end
+		end
+	end
+	
+	MurderMystery = vape.Categories.Minigames:CreateModule({
+		Name = '谁是凶手',
+		Function = function(callback)
+			if callback then
+				oldtargetable, oldgetcolor = entitylib.targetCheck, entitylib.getEntityColor
+				entitylib.getEntityColor = function(ent)
+					ent = ent.Player
+					if not (ent and vape.Categories.Main.Options['Use team color'].Enabled) then return end
+					if isFriend(ent, true) then
+						return Color3.fromHSV(vape.Categories.Friends.Options['Friends color'].Hue, vape.Categories.Friends.Options['Friends color'].Sat, vape.Categories.Friends.Options['Friends color'].Value)
+					end
+					return murderer == ent and Color3.new(1, 0.3, 0.3) or sheriff == ent and Color3.new(0, 0.5, 1) or nil
+				end
+				entitylib.targetCheck = function(ent)
+					if ent.Player and isFriend(ent.Player) then return false end
+					if murderer == lplr then return true end
+					return murderer == ent.Player or sheriff == ent.Player
+				end
+				for _, v in playersService:GetPlayers() do
+					playerAdded(v)
+				end
+				MurderMystery:Clean(playersService.PlayerAdded:Connect(playerAdded))
+				entitylib.refresh()
+			else
+				entitylib.getEntityColor = oldgetcolor
+				entitylib.targetCheck = oldtargetable
+				entitylib.refresh()
+			end
+		end,
+		Tooltip = '基于装备的Roblox工具，自动进行“谁是凶手”模式下的组队。'
+	})
+end)
+	
+run(function()
+	local Atmosphere
+	local Toggles = {}
+	local newobjects, oldobjects = {}, {}
+	local apidump = {
+		Sky = {
+			SkyboxUp = 'Text',
+			SkyboxDn = 'Text',
+			SkyboxLf = 'Text',
+			SkyboxRt = 'Text',
+			SkyboxFt = 'Text',
+			SkyboxBk = 'Text',
+			SunTextureId = 'Text',
+			SunAngularSize = 'Number',
+			MoonTextureId = 'Text',
+			MoonAngularSize = 'Number',
+			StarCount = 'Number'
+		},
+		Atmosphere = {
+			Color = 'Color',
+			Decay = 'Color',
+			Density = 'Number',
+			Offset = 'Number',
+			Glare = 'Number',
+			Haze = 'Number'
+		},
+		BloomEffect = {
+			Intensity = 'Number',
+			Size = 'Number',
+			Threshold = 'Number'
+		},
+		DepthOfFieldEffect = {
+			FarIntensity = 'Number',
+			FocusDistance = 'Number',
+			InFocusRadius = 'Number',
+			NearIntensity = 'Number'
+		},
+		SunRaysEffect = {
+			Intensity = 'Number',
+			Spread = 'Number'
+		},
+		ColorCorrectionEffect = {
+			TintColor = 'Color',
+			Saturation = 'Number',
+			Contrast = 'Number',
+			Brightness = 'Number'
+		}
+	}
+	
+	local function removeObject(v)
+		if not table.find(newobjects, v) then
+			local toggle = Toggles[v.ClassName]
+			if toggle and toggle.Toggle.Enabled then
+				if v.Parent then
+					table.insert(oldobjects, v)
+					v.Parent = game
+				end
+			end
+		end
+	end
+	
+	Atmosphere = vape.Legit:CreateModule({
+		Name = '环境',
+		Function = function(callback)
+			if callback then
+				for _, v in lightingService:GetChildren() do
+					removeObject(v)
+				end
+				Atmosphere:Clean(lightingService.ChildAdded:Connect(function(v)
+					task.defer(removeObject, v)
+				end))
+	
+				for i, v in Toggles do
+					if v.Toggle.Enabled then
+						local obj = Instance.new(i)
+						for i2, v2 in v.Objects do
+							if v2.Type == 'ColorSlider' then
+								obj[i2] = Color3.fromHSV(v2.Hue, v2.Sat, v2.Value)
+							else
+								obj[i2] = apidump[i][i2] ~= 'Number' and v2.Value or tonumber(v2.Value) or 0
+							end
+						end
+						obj.Parent = lightingService
+						table.insert(newobjects, obj)
+					end
+				end
+			else
+				for _, v in newobjects do
+					v:Destroy()
+				end
+				for _, v in oldobjects do
+					v.Parent = lightingService
+				end
+				table.clear(newobjects)
+				table.clear(oldobjects)
+			end
+		end,
+		Tooltip = '自定义光照对象'
+	})
+	for i, v in apidump do
+		Toggles[i] = {Objects = {}}
+		Toggles[i].Toggle = Atmosphere:CreateToggle({
+			Name = i,
+			Function = function(callback)
+				if Atmosphere.Enabled then
+					Atmosphere:Toggle()
+					Atmosphere:Toggle()
+				end
+				for _, toggle in Toggles[i].Objects do
+					toggle.Object.Visible = callback
+				end
+			end
+		})
+	
+		for i2, v2 in v do
+			if v2 == 'Text' or v2 == 'Number' then
+				Toggles[i].Objects[i2] = Atmosphere:CreateTextBox({
+					Name = i2,
+					Function = function(enter)
+						if Atmosphere.Enabled and enter then
+							Atmosphere:Toggle()
+							Atmosphere:Toggle()
+						end
+					end,
+					Darker = true,
+					Default = v2 == 'Number' and '0' or nil,
+					Visible = false
+				})
+			elseif v2 == 'Color' then
+				Toggles[i].Objects[i2] = Atmosphere:CreateColorSlider({
+					Name = i2,
+					Function = function()
+						if Atmosphere.Enabled then
+							Atmosphere:Toggle()
+							Atmosphere:Toggle()
+						end
+					end,
+					Darker = true,
+					Visible = false
+				})
+			end
+		end
+	end
+end)
+	
+run(function()
+	local Breadcrumbs
+	local Texture
+	local Lifetime
+	local Thickness
+	local FadeIn
+	local FadeOut
+	local trail, point, point2
+	
+	Breadcrumbs = vape.Legit:CreateModule({
+		Name = '路径痕迹',
+		Function = function(callback)
+			if callback then
+				point = Instance.new('Attachment')
+				point.Position = Vector3.new(0, Thickness.Value - 2.7, 0)
+				point2 = Instance.new('Attachment')
+				point2.Position = Vector3.new(0, -Thickness.Value - 2.7, 0)
+				trail = Instance.new('Trail')
+				trail.Texture = Texture.Value == '' and 'http://www.roblox.com/asset/?id=14166981368' or Texture.Value
+				trail.TextureMode = Enum.TextureMode.Static
+				trail.Color = ColorSequence.new(Color3.fromHSV(FadeIn.Hue, FadeIn.Sat, FadeIn.Value), Color3.fromHSV(FadeOut.Hue, FadeOut.Sat, FadeOut.Value))
+				trail.Lifetime = Lifetime.Value
+				trail.Attachment0 = point
+				trail.Attachment1 = point2
+				trail.FaceCamera = true
+	
+				Breadcrumbs:Clean(trail)
+				Breadcrumbs:Clean(point)
+				Breadcrumbs:Clean(point2)
+				Breadcrumbs:Clean(entitylib.Events.LocalAdded:Connect(function(ent)
+					point.Parent = ent.HumanoidRootPart
+					point2.Parent = ent.HumanoidRootPart
+					trail.Parent = gameCamera
+				end))
+				if entitylib.isAlive then
+					point.Parent = entitylib.character.RootPart
+					point2.Parent = entitylib.character.RootPart
+					trail.Parent = gameCamera
+				end
+			else
+				trail = nil
+				point = nil
+				point2 = nil
+			end
+		end,
+		Tooltip = '在你的角色后面显示一条轨迹'
+	})
+	Texture = Breadcrumbs:CreateTextBox({
+		Name = '纹理',
+		Placeholder = '纹理ID',
+		Function = function(enter)
+			if enter and trail then
+				trail.Texture = Texture.Value == '' and 'http://www.roblox.com/asset/?id=14166981368' or Texture.Value
+			end
+		end
+	})
+	FadeIn = Breadcrumbs:CreateColorSlider({
+		Name = '淡入',
+		Function = function(hue, sat, val)
+			if trail then
+				trail.Color = ColorSequence.new(Color3.fromHSV(hue, sat, val), Color3.fromHSV(FadeOut.Hue, FadeOut.Sat, FadeOut.Value))
+			end
+		end
+	})
+	FadeOut = Breadcrumbs:CreateColorSlider({
+		Name = '淡出',
+		Function = function(hue, sat, val)
+			if trail then
+				trail.Color = ColorSequence.new(Color3.fromHSV(FadeIn.Hue, FadeIn.Sat, FadeIn.Value), Color3.fromHSV(hue, sat, val))
+			end
+		end
+	})
+	Lifetime = Breadcrumbs:CreateSlider({
+		Name = '持续时间',
+		Min = 1,
+		Max = 5,
+		Default = 3,
+		Decimal = 10,
+		Function = function(val)
+			if trail then
+				trail.Lifetime = val
+			end
+		end,
+		Suffix = function(val)
+			return '秒'
+		end
+	})
+	Thickness = Breadcrumbs:CreateSlider({
+		Name = '厚度',
+		Min = 0,
+		Max = 2,
+		Default = 0.1,
+		Decimal = 100,
+		Function = function(val)
+			if point then
+				point.Position = Vector3.new(0, val - 2.7, 0)
+			end
+			if point2 then
+				point2.Position = Vector3.new(0, -val - 2.7, 0)
+			end
+		end,
+		Suffix = function(val)
+			return '单位'
+		end
+	})
+end)
+	
+run(function()
+	local Cape
+	local Texture
+	local part, motor
+	
+	local function createMotor(char)
+		if motor then 
+			motor:Destroy() 
+		end
+		part.Parent = gameCamera
+		motor = Instance.new('Motor6D')
+		motor.MaxVelocity = 0.08
+		motor.Part0 = part
+		motor.Part1 = char.Character:FindFirstChild('UpperTorso') or char.RootPart
+		motor.C0 = CFrame.new(0, 2, 0) * CFrame.Angles(0, math.rad(-90), 0)
+		motor.C1 = CFrame.new(0, motor.Part1.Size.Y / 2, 0.45) * CFrame.Angles(0, math.rad(90), 0)
+		motor.Parent = part
+	end
+	
+	Cape = vape.Legit:CreateModule({
+		Name = '披风',
+		Function = function(callback)
+			if callback then
+				part = Instance.new('Part')
+				part.Size = Vector3.new(2, 4, 0.1)
+				part.CanCollide = false
+				part.CanQuery = false
+				part.Massless = true
+				part.Transparency = 0
+				part.Material = Enum.Material.SmoothPlastic
+				part.Color = Color3.new()
+				part.CastShadow = false
+				part.Parent = gameCamera
+				local capesurface = Instance.new('SurfaceGui')
+				capesurface.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+				capesurface.Adornee = part
+				capesurface.Parent = part
+	
+				if Texture.Value:find('.webm') then
+					local decal = Instance.new('VideoFrame')
+					decal.Video = getcustomasset(Texture.Value)
+					decal.Size = UDim2.fromScale(1, 1)
+					decal.BackgroundTransparency = 1
+					decal.Looped = true
+					decal.Parent = capesurface
+					decal:Play()
+				else
+					local decal = Instance.new('ImageLabel')
+					decal.Image = Texture.Value ~= '' and (Texture.Value:find('rbxasset') and Texture.Value or assetfunction(Texture.Value)) or 'rbxassetid://14637958134'
+					decal.Size = UDim2.fromScale(1, 1)
+					decal.BackgroundTransparency = 1
+					decal.Parent = capesurface
+				end
+				Cape:Clean(part)
+				Cape:Clean(entitylib.Events.LocalAdded:Connect(createMotor))
+				if entitylib.isAlive then
+					createMotor(entitylib.character)
+				end
+	
+				repeat
+					if motor and entitylib.isAlive then
+						local velo = math.min(entitylib.character.RootPart.Velocity.Magnitude, 90)
+						motor.DesiredAngle = math.rad(6) + math.rad(velo) + (velo > 1 and math.abs(math.cos(tick() * 5)) / 3 or 0)
+					end
+					capesurface.Enabled = (gameCamera.CFrame.Position - gameCamera.Focus.Position).Magnitude > 0.6
+					part.Transparency = (gameCamera.CFrame.Position - gameCamera.Focus.Position).Magnitude > 0.6 and 0 or 1
+					task.wait()
+				until not Cape.Enabled
+			else
+				part = nil
+				motor = nil
+			end
+		end,
+		Tooltip = '为你的角色添加一个披风'
+	})
+	Texture = Cape:CreateTextBox({
+		Name = '纹理'
+	})
+end)
+	
+run(function()
+	local ChinaHat
+	local Material
+	local Color
+	local hat
+	
+	ChinaHat = vape.Legit:CreateModule({
+		Name = '斗笠',
+		Function = function(callback)
+			if callback then
+				if vape.ThreadFix then
+					setthreadidentity(8)
+				end
+				hat = Instance.new('MeshPart')
+				hat.Size = Vector3.new(3, 0.7, 3)
+				hat.Name = 'ChinaHat'
+				hat.Material = Enum.Material[Material.Value]
+				hat.Color = Color3.fromHSV(Color.Hue, Color.Sat, Color.Value)
+				hat.CanCollide = false
+				hat.CanQuery = false
+				hat.Massless = true
+				hat.MeshId = 'http://www.roblox.com/asset/?id=1778999'
+				hat.Transparency = 1 - Color.Opacity
+				hat.Parent = gameCamera
+				hat.CFrame = entitylib.isAlive and entitylib.character.Head.CFrame + Vector3.new(0, 1, 0) or CFrame.identity
+				local weld = Instance.new('WeldConstraint')
+				weld.Part0 = hat
+				weld.Part1 = entitylib.isAlive and entitylib.character.Head or nil
+				weld.Parent = hat
+				ChinaHat:Clean(hat)
+				ChinaHat:Clean(entitylib.Events.LocalAdded:Connect(function(char)
+					if weld then 
+						weld:Destroy() 
+					end
+					hat.Parent = gameCamera
+					hat.CFrame = char.Head.CFrame + Vector3.new(0, 1, 0)
+					hat.Velocity = Vector3.zero
+					weld = Instance.new('WeldConstraint')
+					weld.Part0 = hat
+					weld.Part1 = char.Head
+					weld.Parent = hat
+				end))
+	
+				repeat
+					hat.LocalTransparencyModifier = ((gameCamera.CFrame.Position - gameCamera.Focus.Position).Magnitude <= 0.6 and 1 or 0)
+					task.wait()
+				until not ChinaHat.Enabled
+			else
+				hat = nil
+			end
+		end,
+		Tooltip = '在你的角色头上戴上一个斗笠 (感谢 mastadawn)'
+	})
+	local materials = {'ForceField'}
+	for _, v in Enum.Material:GetEnumItems() do
+		if v.Name ~= 'ForceField' then
+			table.insert(materials, v.Name)
+		end
+	end
+	Material = ChinaHat:CreateDropdown({
+		Name = '材质',
+		List = materials,
+		Function = function(val)
+			if hat then
+				hat.Material = Enum.Material[val]
+			end
+		end
+	})
+	Color = ChinaHat:CreateColorSlider({
+		Name = '帽子颜色',
+		DefaultOpacity = 0.7,
+		Function = function(hue, sat, val, opacity)
+			if hat then
+				hat.Color = Color3.fromHSV(hue, sat, val)
+				hat.Transparency = 1 - opacity
+			end
+		end
+	})
+end)
+	
+run(function()
+	local Clock
+	local TwentyFourHour
+	local label
+	
+	Clock = vape.Legit:CreateModule({
+		Name = '时钟',
+		Function = function(callback)
+			if callback then
+				repeat
+					label.Text = DateTime.now():FormatLocalTime('LT', TwentyFourHour.Enabled and 'zh-cn' or 'en-us')
+					task.wait(1)
+				until not Clock.Enabled
+			end
+		end,
+		Size = UDim2.fromOffset(100, 41),
+		Tooltip = '显示当前本地时间'
+	})
+	Clock:CreateFont({
+		Name = '字体',
+		Blacklist = 'Gotham',
+		Function = function(val)
+			label.FontFace = val
+		end
+	})
+	Clock:CreateColorSlider({
+		Name = '颜色',
+		DefaultValue = 0,
+		DefaultOpacity = 0.5,
+		Function = function(hue, sat, val, opacity)
+			label.BackgroundColor3 = Color3.fromHSV(hue, sat, val)
+			label.BackgroundTransparency = 1 - opacity
+		end
+	})
+	TwentyFourHour = Clock:CreateToggle({
+		Name = '24小时制'
+	})
+	label = Instance.new('TextLabel')
+	label.Size = UDim2.new(0, 100, 0, 41)
+	label.BackgroundTransparency = 0.5
+	label.TextSize = 15
+	label.Font = Enum.Font.Gotham
+	label.Text = '0:00 PM'
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.BackgroundColor3 = Color3.new()
+	label.Parent = Clock.Children
+	local corner = Instance.new('UICorner')
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = label
+end)
+	
+run(function()
+	local Disguise
+	local Mode
+	local IDBox
+	local desc
+	
+	local function itemAdded(v, manual)
+		if (not v:GetAttribute('Disguise')) and ((v:IsA('Accessory') and (not v:GetAttribute('InvItem')) and (not v:GetAttribute('ArmorSlot'))) or v:IsA('ShirtGraphic') or v:IsA('Shirt') or v:IsA('Pants') or v:IsA('BodyColors') or manual) then
+			repeat
+				task.wait()
+				v.Parent = game
+			until v.Parent == game
+			v:ClearAllChildren()
+			v:Destroy()
+		end
+	end
+	
+	local function characterAdded(char)
+		if Mode.Value == 'Character' then
+			task.wait(0.1)
+			char.Character.Archivable = true
+			local clone = char.Character:Clone()
+			repeat
+				if pcall(function()
+					desc = playersService:GetHumanoidDescriptionFromUserId(IDBox.Value == '' and 239702688 or tonumber(IDBox.Value))
+				end) and desc then break end
+				task.wait(1)
+			until not Disguise.Enabled
+			if not Disguise.Enabled then
+				clone:ClearAllChildren()
+				clone:Destroy()
+				clone = nil
+				if desc then
+					desc:Destroy()
+					desc = nil
+				end
+				return
+			end
+			clone.Parent = game
+	
+			local originalDesc = char.Humanoid:WaitForChild('HumanoidDescription', 2) or {
+				HeightScale = 1,
+				SetEmotes = function() end,
+				SetEquippedEmotes = function() end
+			}
+			originalDesc.JumpAnimation = desc.JumpAnimation
+			desc.HeightScale = originalDesc.HeightScale
+	
+			for _, v in clone:GetChildren() do
+				if v:IsA('Accessory') or v:IsA('ShirtGraphic') or v:IsA('Shirt') or v:IsA('Pants') then
+					v:ClearAllChildren()
+					v:Destroy()
+				end
+			end
+	
+			clone.Humanoid:ApplyDescriptionClientServer(desc)
+			for _, v in char.Character:GetChildren() do
+				itemAdded(v)
+			end
+			Disguise:Clean(char.Character.ChildAdded:Connect(itemAdded))
+	
+			for _, v in clone:WaitForChild('Animate'):GetChildren() do
+				if not char.Character:FindFirstChild('Animate') then return end
+				local real = char.Character.Animate:FindFirstChild(v.Name)
+				if v and real then
+					local anim = v:FindFirstChildWhichIsA('Animation') or {AnimationId = ''}
+					local realanim = real:FindFirstChildWhichIsA('Animation') or {AnimationId = ''}
+					if realanim then
+						realanim.AnimationId = anim.AnimationId
+					end
+				end
+			end
+	
+			for _, v in clone:GetChildren() do
+				v:SetAttribute('Disguise', true)
+				if v:IsA('Accessory') then
+					for _, v2 in v:GetDescendants() do
+						if v2:IsA('Weld') and v2.Part1 then
+							v2.Part1 = char.Character[v2.Part1.Name]
+						end
+					end
+					v.Parent = char.Character
+				elseif v:IsA('ShirtGraphic') or v:IsA('Shirt') or v:IsA('Pants') or v:IsA('BodyColors') then
+					v.Parent = char.Character
+				elseif v.Name == 'Head' and char.Head:IsA('MeshPart') and (not char.Head:FindFirstChild('FaceControls')) then
+					char.Head.MeshId = v.MeshId
+				end
+			end
+	
+			local localface = char.Character:FindFirstChild('face', true)
+			local cloneface = clone:FindFirstChild('face', true)
+			if localface and cloneface then
+				itemAdded(localface, true)
+				cloneface.Parent = char.Head
+			end
+			originalDesc:SetEmotes(desc:GetEmotes())
+			originalDesc:SetEquippedEmotes(desc:GetEquippedEmotes())
+			clone:ClearAllChildren()
+			clone:Destroy()
+			clone = nil
+			if desc then
+				desc:Destroy()
+				desc = nil
+			end
+		else
+			local data
+			repeat
+				if pcall(function()
+					data = marketplaceService:GetProductInfo(IDBox.Value == '' and 43 or tonumber(IDBox.Value), Enum.InfoType.Bundle)
+				end) then break end
+				task.wait(1)
+			until not Disguise.Enabled
+			if not Disguise.Enabled then
+				if data then
+					table.clear(data)
+					data = nil
+				end
+				return
+			end
+			if data.BundleType == 'AvatarAnimations' then
+				local animate = char.Character:FindFirstChild('Animate')
+				if not animate then return end
+				for _, v in desc.Items do
+					local animtype = v.Name:split(' ')[2]:lower()
+					if animtype ~= 'animation' then
+						local suc, res = pcall(function() return game:GetObjects('rbxassetid://'..v.Id) end)
+						if suc then
+							animate[animtype]:FindFirstChildWhichIsA('Animation').AnimationId = res[1]:FindFirstChildWhichIsA('Animation', true).AnimationId
+						end
+					end
+				end
+			else
+				notif('伪装', '那不是一个动画包', 5, 'warning')
+			end
+		end
+	end
+	
+	Disguise = vape.Legit:CreateModule({
+		Name = '伪装',
+		Function = function(callback)
+			if callback then
+				Disguise:Clean(entitylib.Events.LocalAdded:Connect(characterAdded))
+				if entitylib.isAlive then
+					characterAdded(entitylib.character)
+				end
+			end
+		end,
+		Tooltip = '将你的角色或动画更改为特定的ID（仅限动画包或用户ID）'
+	})
+	Mode = Disguise:CreateDropdown({
+		Name = '模式',
+		List = {'角色', '动画'}, -- {'Character', 'Animation'}
+		Function = function()
+			if Disguise.Enabled then
+				Disguise:Toggle()
+				Disguise:Toggle()
+			end
+		end
+	})
+	IDBox = Disguise:CreateTextBox({
+		Name = '伪装',
+		Placeholder = '伪装用户ID',
+		Function = function()
+			if Disguise.Enabled then
+				Disguise:Toggle()
+				Disguise:Toggle()
+			end
+		end
+	})
+end)
+	
+run(function()
+	local FOV
+	local Value
+	local oldfov
+	
+	FOV = vape.Legit:CreateModule({
+		Name = '视野',
+		Function = function(callback)
+			if callback then
+				oldfov = gameCamera.FieldOfView
+				repeat
+					gameCamera.FieldOfView = Value.Value
+					task.wait()
+				until not FOV.Enabled
+			else
+				gameCamera.FieldOfView = oldfov
+			end
+		end,
+		Tooltip = '调整相机视野'
+	})
+	Value = FOV:CreateSlider({
+		Name = '视野',
+		Min = 30,
+		Max = 120
+	})
+end)
+	
+run(function()
+	--[[
+		获取当前帧率的精确计数
+		来源: https://devforum.roblox.com/t/get-client-FPS-trough-a-script/282631
+	]]
+	local FPS
+	local label
+	
+	FPS = vape.Legit:CreateModule({
+		Name = '帧率',
+		Function = function(callback)
+			if callback then
+				local frames = {}
+				local startClock = os.clock()
+				local updateTick = tick()
+				FPS:Clean(runService.Heartbeat:Connect(function()
+					local updateClock = os.clock()
+					for i = #frames, 1, -1 do
+						frames[i + 1] = frames[i] >= updateClock - 1 and frames[i] or nil
+					end
+					frames[1] = updateClock
+					if updateTick < tick() then
+						updateTick = tick() + 1
+						label.Text = math.floor(os.clock() - startClock >= 1 and #frames or #frames / (os.clock() - startClock))..' FPS'
+					end
+				end))
+			end
+		end,
+		Size = UDim2.fromOffset(100, 41),
+		Tooltip = '显示当前帧率'
+	})
+	FPS:CreateFont({
+		Name = '字体',
+		Blacklist = 'Gotham',
+		Function = function(val)
+			label.FontFace = val
+		end
+	})
+	FPS:CreateColorSlider({
+		Name = '颜色',
+		DefaultValue = 0,
+		DefaultOpacity = 0.5,
+		Function = function(hue, sat, val, opacity)
+			label.BackgroundColor3 = Color3.fromHSV(hue, sat, val)
+			label.BackgroundTransparency = 1 - opacity
+		end
+	})
+	label = Instance.new('TextLabel')
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 0.5
+	label.TextSize = 15
+	label.Font = Enum.Font.Gotham
+	label.Text = 'inf FPS'
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.BackgroundColor3 = Color3.new()
+	label.Parent = FPS.Children
+	local corner = Instance.new('UICorner')
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = label
+end)
+	
+run(function()
+	local Keystrokes
+	local Style
+	local Color
+	local keys, holder = {}
+	
+	local function createKeystroke(keybutton, pos, pos2, text)
+		if keys[keybutton] then
+			keys[keybutton].Key:Destroy()
+			keys[keybutton] = nil
+		end
+		local key = Instance.new('Frame')
+		key.Size = keybutton == Enum.KeyCode.Space and UDim2.new(0, 110, 0, 24) or UDim2.new(0, 34, 0, 36)
+		key.BackgroundColor3 = Color3.fromHSV(Color.Hue, Color.Sat, Color.Value)
+		key.BackgroundTransparency = 1 - Color.Opacity
+		key.Position = pos
+		key.Name = keybutton.Name
+		key.Parent = holder
+		local keytext = Instance.new('TextLabel')
+		keytext.BackgroundTransparency = 1
+		keytext.Size = UDim2.fromScale(1, 1)
+		keytext.Font = Enum.Font.Gotham
+		keytext.Text = text or keybutton.Name
+		keytext.TextXAlignment = Enum.TextXAlignment.Left
+		keytext.TextYAlignment = Enum.TextYAlignment.Top
+		keytext.Position = pos2
+		keytext.TextSize = keybutton == Enum.KeyCode.Space and 18 or 15
+		keytext.TextColor3 = Color3.new(1, 1, 1)
+		keytext.Parent = key
+		local corner = Instance.new('UICorner')
+		corner.CornerRadius = UDim.new(0, 4)
+		corner.Parent = key
+		keys[keybutton] = {Key = key}
+	end
+	
+	Keystrokes = vape.Legit:CreateModule({
+		Name = '按键显示',
+		Function = function(callback)
+			if callback then
+				createKeystroke(Enum.KeyCode.W, UDim2.new(0, 38, 0, 0), UDim2.new(0, 6, 0, 5), Style.Value == 'Arrow' and '↑' or nil)
+				createKeystroke(Enum.KeyCode.S, UDim2.new(0, 38, 0, 42), UDim2.new(0, 8, 0, 5), Style.Value == 'Arrow' and '↓' or nil)
+				createKeystroke(Enum.KeyCode.A, UDim2.new(0, 0, 0, 42), UDim2.new(0, 7, 0, 5), Style.Value == 'Arrow' and '←' or nil)
+				createKeystroke(Enum.KeyCode.D, UDim2.new(0, 76, 0, 42), UDim2.new(0, 8, 0, 5), Style.Value == 'Arrow' and '→' or nil)
+	
+				Keystrokes:Clean(inputService.InputBegan:Connect(function(inputType)
+					local key = keys[inputType.KeyCode]
+					if key then
+						if key.Tween then
+							key.Tween:Cancel()
+						end
+						if key.Tween2 then
+							key.Tween2:Cancel()
+						end
+	
+						key.Pressed = true
+						key.Tween = tweenService:Create(key.Key, TweenInfo.new(0.1), {
+							BackgroundColor3 = Color3.new(1, 1, 1), 
+							BackgroundTransparency = 0
+						})
+						key.Tween2 = tweenService:Create(key.Key.TextLabel, TweenInfo.new(0.1), {
+							TextColor3 = Color3.new()
+						})
+						key.Tween:Play()
+						key.Tween2:Play()
+					end
+				end))
+	
+				Keystrokes:Clean(inputService.InputEnded:Connect(function(inputType)
+					local key = keys[inputType.KeyCode]
+					if key then
+						if key.Tween then
+							key.Tween:Cancel()
+						end
+						if key.Tween2 then
+							key.Tween2:Cancel()
+						end
+	
+						key.Pressed = false
+						key.Tween = tweenService:Create(key.Key, TweenInfo.new(0.1), {
+							BackgroundColor3 = Color3.fromHSV(Color.Hue, Color.Sat, Color.Value), 
+							BackgroundTransparency = 1 - Color.Opacity
+						})
+						key.Tween2 = tweenService:Create(key.Key.TextLabel, TweenInfo.new(0.1), {
+							TextColor3 = Color3.new(1, 1, 1)
+						})
+						key.Tween:Play()
+						key.Tween2:Play()
+					end
+				end))
+			end
+		end,
+		Size = UDim2.fromOffset(110, 176),
+		Tooltip = '在屏幕上显示移动按键'
+	})
+	holder = Instance.new('Frame')
+	holder.Size = UDim2.fromScale(1, 1)
+	holder.BackgroundTransparency = 1
+	holder.Parent = Keystrokes.Children
+	Style = Keystrokes:CreateDropdown({
+		Name = '按键样式',
+		List = {'键盘', '箭头'}, -- {'Keyboard', 'Arrow'}
+		Function = function()
+			if Keystrokes.Enabled then
+				Keystrokes:Toggle()
+				Keystrokes:Toggle()
+			end
+		end
+	})
+	Color = Keystrokes:CreateColorSlider({
+		Name = '颜色',
+		DefaultValue = 0,
+		DefaultOpacity = 0.5,
+		Function = function(hue, sat, val, opacity)
+			for _, v in keys do
+				if not v.Pressed then
+					v.Key.BackgroundColor3 = Color3.fromHSV(hue, sat, val)
+					v.Key.BackgroundTransparency = 1 - opacity
+				end
+			end
+		end
+	})
+	Keystrokes:CreateToggle({
+		Name = '显示空格键',
+		Function = function(callback)
+			Keystrokes.Children.Size = UDim2.fromOffset(110, callback and 107 or 78)
+			if callback then
+				createKeystroke(Enum.KeyCode.Space, UDim2.new(0, 0, 0, 83), UDim2.new(0, 25, 0, -10), '______')
+			else
+				keys[Enum.KeyCode.Space].Key:Destroy()
+				keys[Enum.KeyCode.Space] = nil
+			end
+		end,
+		Default = true
+	})
+end)
+	
+run(function()
+	local Memory
+	local label
+	
+	Memory = vape.Legit:CreateModule({
+		Name = '内存',
+		Function = function(callback)
+			if callback then
+				repeat
+					label.Text = math.floor(tonumber(game:GetService('Stats'):FindFirstChild('PerformanceStats').Memory:GetValue()))..' MB'
+					task.wait(1)
+				until not Memory.Enabled
+			end
+		end,
+		Size = UDim2.fromOffset(100, 41),
+		Tooltip = '一个显示Roblox当前使用内存的标签'
+	})
+	Memory:CreateFont({
+		Name = '字体',
+		Blacklist = 'Gotham',
+		Function = function(val)
+			label.FontFace = val
+		end
+	})
+	Memory:CreateColorSlider({
+		Name = '颜色',
+		DefaultValue = 0,
+		DefaultOpacity = 0.5,
+		Function = function(hue, sat, val, opacity)
+			label.BackgroundColor3 = Color3.fromHSV(hue, sat, val)
+			label.BackgroundTransparency = 1 - opacity
+		end
+	})
+	label = Instance.new('TextLabel')
+	label.Size = UDim2.new(0, 100, 0, 41)
+	label.BackgroundTransparency = 0.5
+	label.TextSize = 15
+	label.Font = Enum.Font.Gotham
+	label.Text = '0 MB'
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.BackgroundColor3 = Color3.new()
+	label.Parent = Memory.Children
+	local corner = Instance.new('UICorner')
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = label
+end)
+	
+run(function()
+	local Ping
+	local label
+	
+	Ping = vape.Legit:CreateModule({
+		Name = '延迟',
+		Function = function(callback)
+			if callback then
+				repeat
+					label.Text = math.floor(tonumber(game:GetService('Stats'):FindFirstChild('PerformanceStats').Ping:GetValue()))..' ms'
+					task.wait(1)
+				until not Ping.Enabled
+			end
+		end,
+		Size = UDim2.fromOffset(100, 41),
+		Tooltip = '显示当前到Roblox服务器的连接速度'
+	})
+	Ping:CreateFont({
+		Name = '字体',
+		Blacklist = 'Gotham',
+		Function = function(val)
+			label.FontFace = val
+		end
+	})
+	Ping:CreateColorSlider({
+		Name = '颜色',
+		DefaultValue = 0,
+		DefaultOpacity = 0.5,
+		Function = function(hue, sat, val, opacity)
+			label.BackgroundColor3 = Color3.fromHSV(hue, sat, val)
+			label.BackgroundTransparency = 1 - opacity
+		end
+	})
+	label = Instance.new('TextLabel')
+	label.Size = UDim2.new(0, 100, 0, 41)
+	label.BackgroundTransparency = 0.5
+	label.TextSize = 15
+	label.Font = Enum.Font.Gotham
+	label.Text = '0 ms'
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.BackgroundColor3 = Color3.new()
+	label.Parent = Ping.Children
+	local corner = Instance.new('UICorner')
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = label
+end)
+	
+run(function()
+	local SongBeats
+	local List
+	local FOV
+	local FOVValue = {}
+	local Volume
+	local alreadypicked = {}
+	local beattick = tick()
+	local oldfov, songobj, songbpm, songtween
+	
+	local function choosesong()
+		local list = List.ListEnabled
+		if #alreadypicked >= #list then
+			table.clear(alreadypicked)
+		end
+	
+		if #list <= 0 then
+			notif('歌曲节拍', '没有歌曲', 10)
+			SongBeats:Toggle()
+			return
+		end
+	
+		local chosensong = list[math.random(1, #list)]
+		if #list > 1 and table.find(alreadypicked, chosensong) then
+			repeat
+				task.wait()
+				chosensong = list[math.random(1, #list)]
+			until not table.find(alreadypicked, chosensong) or not SongBeats.Enabled
+		end
+		if not SongBeats.Enabled then return end
+	
+		local split = chosensong:split('/')
+		if not isfile(split[1]) then
+			notif('歌曲节拍', '缺少歌曲 ('..split[1]..')', 10)
+			SongBeats:Toggle()
+			return
+		end
+	
+		songobj.SoundId = assetfunction(split[1])
+		repeat task.wait() until songobj.IsLoaded or not SongBeats.Enabled
+		if SongBeats.Enabled then
+			beattick = tick() + (tonumber(split[3]) or 0)
+			songbpm = 60 / (tonumber(split[2]) or 50)
+			songobj:Play()
+		end
+	end
+	
+	SongBeats = vape.Legit:CreateModule({
+		Name = '歌曲节拍',
+		Function = function(callback)
+			if callback then
+				songobj = Instance.new('Sound')
+				songobj.Volume = Volume.Value / 100
+				songobj.Parent = workspace
+				oldfov = gameCamera.FieldOfView
+	
+				repeat
+					if not songobj.Playing then
+						choosesong()
+					end
+					if beattick < tick() and SongBeats.Enabled and FOV.Enabled then
+						beattick = tick() + songbpm
+						gameCamera.FieldOfView = oldfov - FOVValue.Value
+						songtween = tweenService:Create(gameCamera, TweenInfo.new(math.min(songbpm, 0.2), Enum.EasingStyle.Linear), {
+							FieldOfView = oldfov
+						})
+						songtween:Play()
+					end
+					task.wait()
+				until not SongBeats.Enabled
+			else
+				if songobj then
+					songobj:Destroy()
+				end
+				if songtween then
+					songtween:Cancel()
+				end
+				if oldfov then
+					gameCamera.FieldOfView = oldfov
+				end
+				table.clear(alreadypicked)
+			end
+		end,
+		Tooltip = '内置MP3播放器'
+	})
+	List = SongBeats:CreateTextList({
+		Name = '歌曲',
+		Placeholder = '文件路径/bpm/开始时间'
+	})
+	FOV = SongBeats:CreateToggle({
+		Name = '节拍视野',
+		Function = function(callback)
+			if FOVValue.Object then
+				FOVValue.Object.Visible = callback
+			end
+			if SongBeats.Enabled then
+				SongBeats:Toggle()
+				SongBeats:Toggle()
+			end
+		end,
+		Default = true
+	})
+	FOVValue = SongBeats:CreateSlider({
+		Name = '调整值',
+		Min = 1,
+		Max = 30,
+		Default = 5,
+		Darker = true
+	})
+	Volume = SongBeats:CreateSlider({
+		Name = '音量',
+		Function = function(val)
+			if songobj then
+				songobj.Volume = val / 100
+			end
+		end,
+		Min = 1,
+		Max = 100,
+		Default = 100,
+		Suffix = '%'
+	})
+end)
+	
+run(function()
+	local Speedmeter
+	local label
+	
+	Speedmeter = vape.Legit:CreateModule({
+		Name = '速度计',
+		Function = function(callback)
+			if callback then
+				repeat
+					local lastpos = entitylib.isAlive and entitylib.character.HumanoidRootPart.Position * Vector3.new(1, 0, 1) or Vector3.zero
+					local dt = task.wait(0.2)
+					local newpos = entitylib.isAlive and entitylib.character.HumanoidRootPart.Position * Vector3.new(1, 0, 1) or Vector3.zero
+					label.Text = math.round(((lastpos - newpos) / dt).Magnitude)..' sps'
+				until not Speedmeter.Enabled
+			end
+		end,
+		Size = UDim2.fromOffset(100, 41),
+		Tooltip = '一个以单位/秒显示平均速度的标签'
+	})
+	Speedmeter:CreateFont({
+		Name = '字体',
+		Blacklist = 'Gotham',
+		Function = function(val)
+			label.FontFace = val
+		end
+	})
+	Speedmeter:CreateColorSlider({
+		Name = '颜色',
+		DefaultValue = 0,
+		DefaultOpacity = 0.5,
+		Function = function(hue, sat, val, opacity)
+			label.BackgroundColor3 = Color3.fromHSV(hue, sat, val)
+			label.BackgroundTransparency = 1 - opacity
+		end
+	})
+	label = Instance.new('TextLabel')
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 0.5
+	label.TextSize = 15
+	label.Font = Enum.Font.Gotham
+	label.Text = '0 sps'
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.BackgroundColor3 = Color3.new()
+	label.Parent = Speedmeter.Children
+	local corner = Instance.new('UICorner')
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = label
+end)
+	
+run(function()
+	local TimeChanger
+	local Value
+	local old
+	
+	TimeChanger = vape.Legit:CreateModule({
+		Name = '时间更改',
+		Function = function(callback)
+			if callback then
+				old = lightingService.TimeOfDay
+				lightingService.TimeOfDay = Value.Value..':00:00'
+			else
+				lightingService.TimeOfDay = old
+				old = nil
+			end
+		end,
+		Tooltip = '改变当前世界的时间'
+	})
+	Value = TimeChanger:CreateSlider({
+		Name = '时间',
+		Min = 0,
+		Max = 24,
+		Default = 12,
+		Function = function(val)
+			if TimeChanger.Enabled then 
+				lightingService.TimeOfDay = val..':00:00'
+			end
+		end
+	})
+	
+end)
