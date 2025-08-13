@@ -2042,7 +2042,7 @@ run(function()
 	})
 	Options.WallCheck = WallCheck
 	PlatformStanding = Fly:CreateToggle({
-		Name = '平台架',
+		Name = '固定',
 		Function = function(callback)
 			if Fly.Enabled then
 				entitylib.character.Humanoid.PlatformStand = callback
@@ -2377,7 +2377,7 @@ run(function()
 	end
 	
 	Killaura = vape.Categories.Blatant:CreateModule({
-		Name = 'Killaura',
+		Name = '杀戮光环',
 		Function = function(callback)
 			if callback then
 				repeat
@@ -2635,7 +2635,7 @@ run(function()
 	local AutoDisable
 	
 	LongJump = vape.Categories.Blatant:CreateModule({
-		Name = 'LongJump',
+		Name = '远跳',
 		Function = function(callback)
 			if callback then
 				local exempt = tick() + 0.1
@@ -2673,12 +2673,12 @@ run(function()
 		Tooltip = 'Lets you jump farther'
 	})
 	Mode = LongJump:CreateDropdown({
-		Name = 'Mode',
+		Name = '方式',
 		List = {'Velocity', 'Impulse', 'CFrame'},
 		Tooltip = 'Velocity - Uses smooth physics based movement\nImpulse - Same as velocity while using forces instead\nCFrame - Directly adjusts the position of the root'
 	})
 	Value = LongJump:CreateSlider({
-		Name = 'Speed',
+		Name = '速度',
 		Min = 1,
 		Max = 150,
 		Default = 50,
@@ -2687,7 +2687,7 @@ run(function()
 		end
 	})
 	AutoDisable = LongJump:CreateToggle({
-		Name = 'Auto Disable',
+		Name = '自动关闭',
 		Default = true
 	})
 end)
@@ -2715,7 +2715,7 @@ run(function()
 	end
 	
 	MouseTP = vape.Categories.Blatant:CreateModule({
-		Name = 'MouseTP',
+		Name = '点击传送',
 		Function = function(callback)
 			if callback then
 				local position
@@ -2965,7 +2965,7 @@ run(function()
 	local w, s, a, d = 0, 0, 0, 0
 	
 	Speed = vape.Categories.Blatant:CreateModule({
-		Name = 'Speed',
+		Name = '速度',
 		Function = function(callback)
 			frictionTable.Speed = callback and CustomProperties.Enabled or nil
 			updateVelocity()
@@ -3017,7 +3017,7 @@ run(function()
 		Tooltip = 'Increases your movement with various methods.'
 	})
 	Mode = Speed:CreateDropdown({
-		Name = 'Mode',
+		Name = '方式',
 		List = SpeedMethodList,
 		Function = function(val)
 			Options.WallCheck.Object.Visible = val == 'CFrame' or val == 'TP'
@@ -3033,12 +3033,12 @@ run(function()
 	})
 	Options = {
 		MoveMethod = Speed:CreateDropdown({
-			Name = 'Move Mode',
+			Name = '移动方式',
 			List = {'MoveDirection', 'Direct'},
 			Tooltip = 'MoveDirection - Uses the games input vector for movement\nDirect - Directly calculate our own input vector'
 		}),
 		Value = Speed:CreateSlider({
-			Name = 'Speed',
+			Name = '速度',
 			Min = 1,
 			Max = 150,
 			Default = 50,
@@ -3100,7 +3100,7 @@ run(function()
 		Default = true
 	})
 	AutoJump = Speed:CreateToggle({
-		Name = 'AutoJump',
+		Name = '自动跳',
 		Function = function(callback)
 			AutoJumpCustom.Object.Visible = callback
 		end
@@ -3115,7 +3115,7 @@ run(function()
 		Visible = false
 	})
 	AutoJumpValue = Speed:CreateSlider({
-		Name = 'Jump Power',
+		Name = '超级跳',
 		Min = 1,
 		Max = 50,
 		Default = 30,
@@ -3133,7 +3133,7 @@ run(function()
 	local Active, Truss
 	
 	Spider = vape.Categories.Blatant:CreateModule({
-		Name = 'Spider',
+		Name = '攀爬',
 		Function = function(callback)
 			if callback then
 				if Truss then Truss.Parent = gameCamera end
@@ -3212,7 +3212,7 @@ run(function()
 		Tooltip = 'Velocity - Uses smooth movement to boost you upward\nCFrame - Directly adjusts the position upward\nPart - Positions a climbable part infront of you'
 	})
 	Value = Spider:CreateSlider({
-		Name = 'Speed',
+		Name = '速度',
 		Min = 0,
 		Max = 100,
 		Default = 30,
@@ -3237,7 +3237,7 @@ run(function()
 	local AngularVelocity
 	
 	SpinBot = vape.Categories.Blatant:CreateModule({
-		Name = 'SpinBot',
+		Name = '自动旋转',
 		Function = function(callback)
 			if callback then
 				SpinBot:Clean(runService.PreSimulation:Connect(function()
@@ -3269,7 +3269,7 @@ run(function()
 		Tooltip = 'Makes your character spin around in circles (does not work in first person)'
 	})
 	Mode = SpinBot:CreateDropdown({
-		Name = 'Mode',
+		Name = '模式',
 		List = {'CFrame', 'RotVelocity', 'BodyMover'},
 		Function = function(val)
 			if AngularVelocity then
@@ -3280,14 +3280,14 @@ run(function()
 		end
 	})
 	Value = SpinBot:CreateSlider({
-		Name = 'Speed',
+		Name = '速度',
 		Min = 1,
 		Max = 100,
 		Default = 40
 	})
 	XToggle = SpinBot:CreateToggle({Name = 'Spin X'})
 	YToggle = SpinBot:CreateToggle({
-		Name = 'Spin Y',
+		Name = '旋转Y轴',
 		Default = true
 	})
 	ZToggle = SpinBot:CreateToggle({Name = 'Spin Z'})
@@ -3600,13 +3600,13 @@ run(function()
 		Tooltip = 'Hides teammates & non targetable entities'
 	})
 	Distance = Arrows:CreateToggle({
-		Name = 'Distance Check',
+		Name = '距离判断',
 		Function = function(callback)
 			DistanceLimit.Object.Visible = callback
 		end
 	})
 	DistanceLimit = Arrows:CreateTwoSlider({
-		Name = 'Player Distance',
+		Name = '玩家距离',
 		Min = 0,
 		Max = 256,
 		DefaultMin = 0,
@@ -7868,7 +7868,7 @@ run(function()
 		end
 	})
 	Speedmeter:CreateColorSlider({
-		Name = 'Color',
+		Name = '颜色',
 		DefaultValue = 0,
 		DefaultOpacity = 0.5,
 		Function = function(hue, sat, val, opacity)
@@ -7909,7 +7909,7 @@ run(function()
 		Tooltip = 'Change the time of the current world'
 	})
 	Value = TimeChanger:CreateSlider({
-		Name = 'Time',
+		Name = '时间',
 		Min = 0,
 		Max = 24,
 		Default = 12,
