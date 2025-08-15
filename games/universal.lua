@@ -4196,7 +4196,7 @@ run(function()
 	}
 	
 	ESP = vape.Categories.Render:CreateModule({
-		Name = 'ESP',
+		Name = '绘制',
 		Function = function(callback)
 			if callback then
 				methodused = 'Drawing'..Method.Value
@@ -4251,8 +4251,8 @@ run(function()
 		end
 	})
 	Method = ESP:CreateDropdown({
-		Name = 'Mode',
-		List = {'2D', '3D', 'Skeleton'},
+		Name = '模式',
+		List = {'2D', '3D', '骨骼'},
 		Function = function(val)
 			if ESP.Enabled then
 				ESP:Toggle()
@@ -4267,7 +4267,7 @@ run(function()
 		end,
 	})
 	Color = ESP:CreateColorSlider({
-		Name = 'Player Color',
+		Name = '玩家颜色',
 		Function = function(hue, sat, val)
 			if ESP.Enabled and ColorFunc[methodused] then
 				ColorFunc[methodused](hue, sat, val)
@@ -4275,7 +4275,7 @@ run(function()
 		end
 	})
 	BoundingBox = ESP:CreateToggle({
-		Name = 'Bounding Box',
+		Name = '框',
 		Function = function()
 			if ESP.Enabled then
 				ESP:Toggle()
@@ -4286,7 +4286,7 @@ run(function()
 		Darker = true
 	})
 	Filled = ESP:CreateToggle({
-		Name = 'Filled',
+		Name = '填充',
 		Function = function()
 			if ESP.Enabled then
 				ESP:Toggle()
@@ -4296,7 +4296,7 @@ run(function()
 		Darker = true
 	})
 	HealthBar = ESP:CreateToggle({
-		Name = 'Health Bar',
+		Name = '血条',
 		Function = function()
 			if ESP.Enabled then
 				ESP:Toggle()
@@ -4306,7 +4306,7 @@ run(function()
 		Darker = true
 	})
 	Name = ESP:CreateToggle({
-		Name = 'Name',
+		Name = '名字',
 		Function = function(callback)
 			if ESP.Enabled then
 				ESP:Toggle()
@@ -4318,7 +4318,7 @@ run(function()
 		Darker = true
 	})
 	DisplayName = ESP:CreateToggle({
-		Name = 'Use Displayname',
+		Name = '使用显示名称',
 		Function = function()
 			if ESP.Enabled then
 				ESP:Toggle()
@@ -4329,7 +4329,7 @@ run(function()
 		Darker = true
 	})
 	Background = ESP:CreateToggle({
-		Name = 'Show Background',
+		Name = '显示背景',
 		Function = function()
 			if ESP.Enabled then
 				ESP:Toggle()
@@ -4339,7 +4339,7 @@ run(function()
 		Darker = true
 	})
 	Teammates = ESP:CreateToggle({
-		Name = 'Priority Only',
+		Name = '仅优先级',
 		Function = function()
 			if ESP.Enabled then
 				ESP:Toggle()
@@ -4350,13 +4350,13 @@ run(function()
 		Tooltip = 'Hides teammates & non targetable entities'
 	})
 	Distance = ESP:CreateToggle({
-		Name = 'Distance Check',
+		Name = '距离判断',
 		Function = function(callback)
 			DistanceLimit.Object.Visible = callback
 		end
 	})
 	DistanceLimit = ESP:CreateTwoSlider({
-		Name = 'Player Distance',
+		Name = '玩家距离',
 		Min = 0,
 		Max = 256,
 		DefaultMin = 0,
@@ -4382,7 +4382,7 @@ run(function()
 	local chair
 	
 	GamingChair = vape.Categories.Render:CreateModule({
-		Name = 'GamingChair',
+		Name = '电竞椅',
 		Function = function(callback)
 			if callback then
 				if vape.ThreadFix then
@@ -4582,7 +4582,7 @@ run(function()
 		Tooltip = 'Sit in the best gaming chair known to mankind.'
 	})
 	Color = GamingChair:CreateColorSlider({
-		Name = 'Color',
+		Name = '颜色',
 		Function = function(h, s, v)
 			if chairhighlight then
 				chairhighlight.OutlineColor = Color3.fromHSV(h, s, v)
@@ -4595,7 +4595,7 @@ run(function()
 	local Health
 	
 	Health = vape.Categories.Render:CreateModule({
-		Name = 'Health',
+		Name = '血量',
 		Function = function(callback)
 			if callback then
 				local label = Instance.new('TextLabel')
@@ -4867,7 +4867,7 @@ run(function()
 	}
 	
 	NameTags = vape.Categories.Render:CreateModule({
-		Name = 'NameTags',
+		Name = '名牌',
 		Function = function(callback)
 			if callback then
 				methodused = DrawingToggle.Enabled and 'Drawing' or 'Normal'
@@ -4922,8 +4922,8 @@ run(function()
 		end
 	})
 	FontOption = NameTags:CreateFont({
-		Name = 'Font',
-		Blacklist = 'Arial',
+		Name = '字体',
+		Blacklist = '天线',
 		Function = function()
 			if NameTags.Enabled then
 				NameTags:Toggle()
@@ -4932,7 +4932,7 @@ run(function()
 		end
 	})
 	Color = NameTags:CreateColorSlider({
-		Name = 'Player Color',
+		Name = '玩家颜色',
 		Function = function(hue, sat, val)
 			if NameTags.Enabled and ColorFunc[methodused] then
 				ColorFunc[methodused](hue, sat, val)
@@ -4940,7 +4940,7 @@ run(function()
 		end
 	})
 	Scale = NameTags:CreateSlider({
-		Name = 'Scale',
+		Name = '规模',
 		Function = function()
 			if NameTags.Enabled then
 				NameTags:Toggle()
@@ -4966,7 +4966,7 @@ run(function()
 		Decimal = 10
 	})
 	Health = NameTags:CreateToggle({
-		Name = 'Health',
+		Name = '血量',
 		Function = function()
 			if NameTags.Enabled then
 				NameTags:Toggle()
@@ -4975,7 +4975,7 @@ run(function()
 		end
 	})
 	Distance = NameTags:CreateToggle({
-		Name = 'Distance',
+		Name = '距离',
 		Function = function()
 			if NameTags.Enabled then
 				NameTags:Toggle()
