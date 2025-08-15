@@ -2051,7 +2051,7 @@ run(function()
 		Tooltip = 'Forces the character to look infront of the camera'
 	})
 	CustomProperties = Fly:CreateToggle({
-		Name = 'Custom Properties',
+		Name = '自定义属性',
 		Function = function()
 			if Fly.Enabled then
 				Fly:Toggle()
@@ -2122,7 +2122,7 @@ run(function()
 		Tooltip = 'Velocity - Uses smooth movement to boost you upward\nImpulse - Same as velocity while using forces instead\nCFrame - Directly adjusts the position upward\nInstant - Teleports you to the peak of the jump'
 	})
 	Value = HighJump:CreateSlider({
-		Name = 'Velocity',
+		Name = '速度',
 		Min = 1,
 		Max = 150,
 		Default = 50,
@@ -2176,7 +2176,7 @@ run(function()
 		List = {'RootPart', 'Head'}
 	})
 	Expand = HitBoxes:CreateSlider({
-		Name = 'Expand amount',
+		Name = '范围大小',
 		Min = 0,
 		Max = 2,
 		Decimal = 10,
@@ -2287,7 +2287,7 @@ run(function()
 	end
 	
 	Invisible = vape.Categories.Blatant:CreateModule({
-		Name = 'Invisible',
+		Name = '隐身？',
 		Function = function(callback)
 			if callback then
 				if not proper then
@@ -2458,14 +2458,14 @@ run(function()
 	})
 	Targets = Killaura:CreateTargets({Players = true})
 	CPS = Killaura:CreateTwoSlider({
-		Name = 'Attacks per Second',
+		Name = '每秒攻击次数',
 		Min = 1,
 		Max = 20,
 		DefaultMin = 12,
 		DefaultMax = 12
 	})
 	SwingRange = Killaura:CreateSlider({
-		Name = 'Swing range',
+		Name = '挥砍范围',
 		Min = 1,
 		Max = 30,
 		Default = 13,
@@ -2474,7 +2474,7 @@ run(function()
 		end
 	})
 	AttackRange = Killaura:CreateSlider({
-		Name = 'Attack range',
+		Name = '攻击范围',
 		Min = 1,
 		Max = 30,
 		Default = 13,
@@ -2483,13 +2483,13 @@ run(function()
 		end
 	})
 	AngleSlider = Killaura:CreateSlider({
-		Name = 'Max angle',
+		Name = '最大角度',
 		Min = 1,
 		Max = 360,
 		Default = 90
 	})
 	Max = Killaura:CreateSlider({
-		Name = 'Max targets',
+		Name = '最大目标数',
 		Min = 1,
 		Max = 10,
 		Default = 10
@@ -2497,7 +2497,7 @@ run(function()
 	Mouse = Killaura:CreateToggle({Name = 'Require mouse down'})
 	Lunge = Killaura:CreateToggle({Name = 'Sword lunge only'})
 	Killaura:CreateToggle({
-		Name = 'Show target',
+		Name = '显示目标',
 		Function = function(callback)
 			BoxSwingColor.Object.Visible = callback
 			BoxAttackColor.Object.Visible = callback
@@ -2521,14 +2521,14 @@ run(function()
 		end
 	})
 	BoxSwingColor = Killaura:CreateColorSlider({
-		Name = 'Target Color',
+		Name = '目标颜色',
 		Darker = true,
 		DefaultHue = 0.6,
 		DefaultOpacity = 0.5,
 		Visible = false
 	})
 	BoxAttackColor = Killaura:CreateColorSlider({
-		Name = 'Attack Color',
+		Name = '攻击颜色',
 		Darker = true,
 		DefaultOpacity = 0.5,
 		Visible = false
@@ -2613,7 +2613,7 @@ run(function()
 		Visible = false
 	})
 	ParticleSize = Killaura:CreateSlider({
-		Name = 'Size',
+		Name = '大小',
 		Min = 0,
 		Max = 1,
 		Default = 0.2,
@@ -2778,11 +2778,11 @@ run(function()
 		Tooltip = 'Teleports to a selected position.'
 	})
 	Mode = MouseTP:CreateDropdown({
-		Name = 'Mode',
+		Name = '模式',
 		List = {'Mouse', 'Player', 'Waypoint'}
 	})
 	MovementMode = MouseTP:CreateDropdown({
-		Name = 'Movement',
+		Name = '活动',
 		List = {'CFrame', 'Motor', 'Lerp'},
 		Function = function(val)
 			Length.Object.Visible = val == 'Lerp'
@@ -2790,7 +2790,7 @@ run(function()
 		end
 	})
 	Length = MouseTP:CreateSlider({
-		Name = 'Length',
+		Name = '长度',
 		Min = 0,
 		Max = 150,
 		Darker = true,
@@ -2800,7 +2800,7 @@ run(function()
 		end
 	})
 	Delay = MouseTP:CreateSlider({
-		Name = 'Delay',
+		Name = '延迟',
 		Min = 0,
 		Max = 1,
 		Decimal = 100,
@@ -2898,7 +2898,7 @@ run(function()
 	Functions.Motor = Functions.CFrame
 	
 	Phase = vape.Categories.Blatant:CreateModule({
-		Name = 'Phase',
+		Name = '阶段',
 		Function = function(callback)
 			if callback then
 				Phase:Clean(runService.Stepped:Connect(function()
@@ -2927,7 +2927,7 @@ run(function()
 		Tooltip = 'Lets you Phase/Clip through walls. (Hold shift to use Phase over spider)'
 	})
 	Mode = Phase:CreateDropdown({
-		Name = 'Mode',
+		Name = '模式',
 		List = {'Part', 'Character', 'CFrame', 'Motor', 'FFlag'},
 		Function = function(val)
 			StudLimit.Object.Visible = val == 'CFrame' or val == 'Motor'
@@ -3047,7 +3047,7 @@ run(function()
 			end
 		}),
 		TPFrequency = Speed:CreateSlider({
-			Name = 'TP Frequency',
+			Name = 'TP频率',
 			Min = 0,
 			Max = 1,
 			Decimal = 100,
@@ -3058,7 +3058,7 @@ run(function()
 			end
 		}),
 		PulseLength = Speed:CreateSlider({
-			Name = 'Pulse Length',
+			Name = '脉冲长度',
 			Min = 0,
 			Max = 1,
 			Decimal = 100,
@@ -3069,7 +3069,7 @@ run(function()
 			end
 		}),
 		PulseDelay = Speed:CreateSlider({
-			Name = 'Pulse Delay',
+			Name = '脉冲延迟',
 			Min = 0,
 			Max = 1,
 			Decimal = 100,
@@ -3080,7 +3080,7 @@ run(function()
 			end
 		}),
 		WallCheck = Speed:CreateToggle({
-			Name = 'Wall Check',
+			Name = '墙体检查',
 			Default = true,
 			Darker = true,
 			Visible = false
@@ -3090,7 +3090,7 @@ run(function()
 	}
 	Options.rayCheck.RespectCanCollide = true
 	CustomProperties = Speed:CreateToggle({
-		Name = 'Custom Properties',
+		Name = '自定义属性',
 		Function = function()
 			if Speed.Enabled then
 				Speed:Toggle()
@@ -3192,7 +3192,7 @@ run(function()
 		Tooltip = 'Lets you climb up walls. (Hold shift to use Phase over spider)'
 	})
 	Mode = Spider:CreateDropdown({
-		Name = 'Mode',
+		Name = '模式',
 		List = {'Velocity', 'Impulse', 'CFrame', 'Part'},
 		Function = function(val)
 			Value.Object.Visible = val ~= 'Part'
@@ -3422,7 +3422,7 @@ run(function()
 		Walls = true
 	})
 	SearchRange = TargetStrafe:CreateSlider({
-		Name = 'Search Range',
+		Name = '搜索范围',
 		Min = 1,
 		Max = 30,
 		Default = 24,
@@ -3470,7 +3470,7 @@ run(function()
 		Tooltip = 'Change the game speed.'
 	})
 	Value = Timer:CreateSlider({
-		Name = 'Value',
+		Name = '数值',
 		Min = 1,
 		Max = 3,
 		Decimal = 10
@@ -3547,7 +3547,7 @@ run(function()
 	end
 	
 	Arrows = vape.Categories.Render:CreateModule({
-		Name = 'Arrows',
+		Name = '箭头指示',
 		Function = function(callback)
 			if callback then
 				Arrows:Clean(entitylib.Events.EntityRemoved:Connect(Removed))
@@ -3581,7 +3581,7 @@ run(function()
 		end
 	})
 	Color = Arrows:CreateColorSlider({
-		Name = 'Player Color',
+		Name = '玩家颜色',
 		Function = function(hue, sat, val)
 			if Arrows.Enabled then
 				ColorFunc(hue, sat, val)
@@ -3733,7 +3733,7 @@ run(function()
 		end
 		})
 	Mode = Chams:CreateDropdown({
-		Name = 'Mode',
+		Name = '模式',
 		List = {'Highlight', 'BoxHandles'},
 		Function = function(val)
 			OutlineColor.Object.Visible = val == 'Highlight'
@@ -3745,7 +3745,7 @@ run(function()
 		end
 	})
 	FillColor = Chams:CreateColorSlider({
-		Name = 'Color',
+		Name = '颜色',
 		Function = function(hue, sat, val)
 			for i, v in Reference do
 				local color = entitylib.getEntityColor(i) or Color3.fromHSV(hue, sat, val)
@@ -3758,7 +3758,7 @@ run(function()
 		end
 	})
 	OutlineColor = Chams:CreateColorSlider({
-		Name = 'Outline Color',
+		Name = '概述颜色',
 		DefaultSat = 0,
 		Function = function(hue, sat, val)
 			for i, v in Reference do
@@ -3801,7 +3801,7 @@ run(function()
 		Darker = true
 	})
 	Walls = Chams:CreateToggle({
-		Name = 'Render Walls',
+		Name = '渲染墙',
 		Function = function(callback)
 			for _, v in Reference do
 				if type(v) == 'table' then
