@@ -4923,7 +4923,7 @@ run(function()
 	})
 	FontOption = NameTags:CreateFont({
 		Name = '字体',
-		Blacklist = '天线',
+		Blacklist = 'Arial',
 		Function = function()
 			if NameTags.Enabled then
 				NameTags:Toggle()
