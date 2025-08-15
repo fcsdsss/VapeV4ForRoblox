@@ -2898,7 +2898,7 @@ run(function()
 	Functions.Motor = Functions.CFrame
 	
 	Phase = vape.Categories.Blatant:CreateModule({
-		Name = '阶段',
+		Name = '穿墙',
 		Function = function(callback)
 			if callback then
 				Phase:Clean(runService.Stepped:Connect(function()
@@ -3453,7 +3453,7 @@ run(function()
 	local Value
 	
 	Timer = vape.Categories.Blatant:CreateModule({
-		Name = 'Timer',
+		Name = '全局加速',
 		Function = function(callback)
 			if callback then
 				setfflag('SimEnableStepPhysics', 'True')
@@ -3470,7 +3470,7 @@ run(function()
 		Tooltip = 'Change the game speed.'
 	})
 	Value = Timer:CreateSlider({
-		Name = '数值',
+		Name = '倍率',
 		Min = 1,
 		Max = 3,
 		Decimal = 10
@@ -5071,7 +5071,7 @@ run(function()
 	end
 	
 	PlayerModel = vape.Categories.Render:CreateModule({
-		Name = 'PlayerModel',
+		Name = '米其林轮胎',
 		Function = function(callback)
 			if callback then 
 				if Local.Enabled then 
@@ -5684,7 +5684,7 @@ run(function()
 	end
 	
 	Tracers = vape.Categories.Render:CreateModule({
-		Name = 'Tracers',
+		Name = '射线',
 		Function = function(callback)
 			if callback then
 				Tracers:Clean(entitylib.Events.EntityRemoved:Connect(Removed))
